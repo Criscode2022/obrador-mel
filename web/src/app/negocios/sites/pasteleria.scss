@@ -80,3 +80,5 @@ address app-icon { color: var(--bz-accent); }
   .head nav { display: none; } .cta { margin-left: auto; }
 }
 @media (max-width: 560px) { .tartas ul { grid-template-columns: 1fr; } }
+// «3 semanas» no cabe en media columna en los teléfonos más estrechos.
+@media (max-width: 380px) { .plazos ol { grid-template-columns: 1fr; } }

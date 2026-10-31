@@ -86,8 +86,9 @@ La página no tiene formulario de encargo: los botones abren el asistente con la
 | 720 px      | La barra de demostración se acorta                             |
 | 640 px      | El chat ocupa toda la pantalla                                 |
 | 560 px      | Una tarta por fila                                             |
+| 380 px      | Los plazos de encargo, a una columna                           |
 
-Probado a 390 px de ancho sin desplazamiento horizontal.
+Probado de 320 a 430 px de ancho, en Chrome y WebKit, sin desplazamiento horizontal. En el chat todo se parte en filas, también lo que no tiene espacios, como una dirección web. Una sugerencia larga ocupa varias líneas dentro de una sola pieza: el radio de 18 px es media altura de una fila, así que con una línea sigue siendo una píldora.
 
 ## Accesibilidad
 

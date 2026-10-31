@@ -110,6 +110,19 @@
           @for (card of m.meta?.cards ?? []; track $index; let ci = $index) {
             <ng-container [ngTemplateOutlet]="cardTpl" [ngTemplateOutletContext]="{ $implicit: card, msg: m, ci: ci }" />
           }
+          @if (m.role !== 'user' && (m.meta?.cites?.length || m.meta?.evidence?.length)) {
+            <details class="why">
+              <summary><app-icon name="shield" [size]="13" /> Cómo lo ha comprobado</summary>
+              <ul>
+                @for (e of m.meta?.evidence ?? []; track $index) {
+                  <li [class.bad]="!e.ok"><app-icon [name]="e.ok ? 'check' : 'alert'" [size]="13" [stroke]="2" /> <span>{{ e.detail }}</span></li>
+                }
+                @for (c of m.meta?.cites ?? []; track $index) {
+                  <li class="src"><app-icon name="book" [size]="13" /> <span>Fuente: {{ c.title }}</span></li>
+                }
+              </ul>
+            </details>
+          }
           @if (last && !busy() && m.role !== 'user' && m.meta?.chips?.length) {
             <div class="chips" role="group" aria-label="Respuestas rápidas">
               @for (c of m.meta?.chips ?? []; track $index) {

@@ -97,7 +97,8 @@ function askOption(c, line, group) {
   });
 }
 
-function askPickup(c) {
+function askPickup(c, intro = '') {
+  const pre = intro ? `${intro} ` : '';
   const today = todayYmd(c.now);
   c.state.awaiting = 'pickup';
   const first = firstPickup(c.biz, { now: c.now, leadMinutes: leadMinutes(c), own: c.own });
@@ -111,7 +112,7 @@ function askPickup(c) {
     }
     c.state.awaiting = 'pickup_date';
     return c.say({
-      text: c.t(
+      text: pre + c.t(
         `Este pedido necesita ${Math.round(lead / 60)} horas de antelación. ¿Qué día lo recoges?`,
         `Este pedido necesita ${Math.round(lead / 60)} horas de antelación. ¿Que día o recollas?`,
       ),
@@ -122,16 +123,16 @@ function askPickup(c) {
   if (!first) {
     c.state.awaiting = null;
     return c.say({
-      text: c.t(`Ahora no puedo programar recogidas: ${c.biz.name} está cerrado y no hay huecos en los próximos días.`, `Agora non podo programar recollidas: ${c.biz.name} está pechado e non hai ocos nos próximos días.`),
+      text: pre + c.t(`Ahora no puedo programar recogidas: ${c.biz.name} está cerrado y no hay huecos en los próximos días.`, `Agora non podo programar recollidas: ${c.biz.name} está pechado e non hai ocos nos próximos días.`),
     });
   }
   const soon = `${first.time}`;
   const sameDay = first.ymd === today;
   const slots = first.slots;
   c.say({
-    text: sameDay
+    text: pre + (sameDay
       ? c.t(`¿A qué hora lo recoges? Lo más pronto que puedo tenerlo listo es a las ${soon}.`, `¿A que hora o recolles? O máis cedo que podo telo listo é ás ${soon}.`)
-      : c.t(`Ahora estamos cerrados. ¿Te lo dejo para ${dayRel(first.ymd, c.lang, c.now)}? La primera hora es ${soon}.`, `Agora estamos pechados. ¿Déixocho para ${dayRel(first.ymd, c.lang, c.now)}? A primeira hora é ${soon}.`),
+      : c.t(`Ahora estamos cerrados. ¿Te lo dejo para ${dayRel(first.ymd, c.lang, c.now)}? La primera hora es ${soon}.`, `Agora estamos pechados. ¿Déixocho para ${dayRel(first.ymd, c.lang, c.now)}? A primeira hora é ${soon}.`)),
     chips: [
       chipAction(c.t(`Lo antes posible · ${soon}`, `Canto antes · ${soon}`), { type: 'asap' }),
       ...timeChips(c, slots.filter((s) => s.min > first.min).slice(0, 7)),
@@ -432,7 +433,7 @@ function orderStepInner(c) {
       state.awaiting = 'pickup';
       return c.say({ text: `${lead} ${c.t('¿Qué prefieres?', '¿Que prefires?')}`, chips, evidence: [{ step: 'pickup', ok: false, detail: lead }] });
     }
-    return askPickup(c);
+    return askPickup(c, lead);
   }
   if (check.need === 'date' || check.need === 'pickup') return askPickup(c);
   if (check.need === 'pickup_time') {

@@ -70,6 +70,12 @@ test('una hora que ya pasó se explica y se ofrece otra', async () => {
   assert.ok(chips(out).length > 0);
 });
 
+test('un día cerrado se explica antes de preguntar otra hora', async () => {
+  const [out] = await talk(['una palmera para el lunes a las 11']);
+  assert.match(texts(out), /El lunes 19 de octubre no abrimos\. ¿A qué hora lo recoges\?/);
+  assert.equal(out.state.order.ymd, null);
+});
+
 test('se puede quitar y cambiar lo pedido a mitad de conversación', async () => {
   const log = await talk(['dos palmeras y un brownie', 'quita el brownie', 'mejor cinco palmeras']);
   assert.match(texts(log[1]), /Quitado: Brownie/);

@@ -121,7 +121,7 @@ async function infoStep(c, { interrupt = false } = {}) {
     const more = await c.kbAnswer(s.text, c);
     if (!more.no_data && more.text) {
       c.kb = more;
-      c.say({ text: more.text, cites: (more.used ?? []).slice(0, 2).map((u) => ({ title: u.title, source: u.source, heading: u.heading })), chips: [] });
+      c.say({ text: more.text, cites: (more.used ?? []).map((u) => ({ title: u.title, source: u.source, heading: u.heading })), chips: [] });
     }
     return true;
   }
@@ -153,7 +153,7 @@ async function infoStep(c, { interrupt = false } = {}) {
   }
   c.say({
     text: kb.text,
-    cites: (kb.used ?? []).slice(0, 3).map((u) => ({ title: u.title === 'Carta y catálogo' ? u.heading : u.title, source: u.source, heading: u.heading })),
+    cites: (kb.used ?? []).map((u) => ({ title: u.title === 'Carta y catálogo' ? u.heading : u.title, source: u.source, heading: u.heading })),
     evidence: [{
       step: 'retrieve',
       ok: true,

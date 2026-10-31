@@ -282,7 +282,7 @@ export async function chatTurn({
         tokens_in: kb.tokens_in, tokens_out: kb.tokens_out,
       });
     }
-    for (const u of (kb.used ?? []).slice(0, 3)) {
+    for (const u of kb.used ?? []) {
       await addCitation(id, { source: `${slug}/${u.source}#${u.heading}`, quote: u.text, score: u.score });
     }
   }

@@ -135,6 +135,13 @@ test('una respuesta del conocimiento lleva sus fuentes', async () => {
   assert.equal(out.request, null);
 });
 
+test('se citan todas las fuentes que recibió el modelo', async () => {
+  const used = ['Uno', 'Dos', 'Tres', 'Cuatro'].map((heading) => ({ title: 'Doc', source: 'doc.md', heading, score: 0.5 }));
+  const kbAnswer = async () => ({ text: 'Sí.', no_data: false, model: 'prueba', tokens_out: 1, ms: 1, used });
+  const [out] = await talk(['¿se puede congelar una tarta?'], { kbAnswer });
+  assert.deepEqual(out.replies[0].cites.map((c) => c.heading), ['Uno', 'Dos', 'Tres', 'Cuatro']);
+});
+
 test('respuestas calculadas: alérgenos y horario sin pasar por el modelo', async () => {
   const [gluten, hours] = await talk(['¿qué tenéis sin gluten?', '¿a qué hora abrís hoy?'], {
     kbAnswer: async () => { throw new Error('no debía llamarse'); },

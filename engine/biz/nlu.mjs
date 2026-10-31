@@ -2,7 +2,9 @@
 // (reservar, pedir, preguntar...), y los datos sueltos (día, hora, personas, servicios,
 // productos, nombre, teléfono). Lo que el cliente dice se contrasta después con el
 // negocio: aquí solo se lee, no se decide nada.
-import { normalize } from './text.mjs';
+import { NUMBER_WORDS, normalize, toNumber } from './text.mjs';
+
+const NUM = `(?:\\d{1,2}|${Object.keys(NUMBER_WORDS).join('|')})`;
 
 // Palabras que solo existen en gallego (sin tildes), para no confundirlo con castellano.
 const GL_ONLY = /\b(?:ola|grazas|obrigad[ao]|quero|teno|unha|duas|dous|onde|cando|canto|custa|hoxe|tamen|nome|abrides|pechades|tenen|tedes|podo|gustariame|facer|recoller|levar|moi|moitas|vosa|voso|cousa|cousas|ben|axudar|axuda|bos dias|boas)\b/g;
@@ -89,4 +91,131 @@ const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 export function extractEmail(text) {
   const m = String(text ?? '').match(EMAIL_RE);
   return m ? m[0].toLowerCase() : null;
+}
+
+// ----------------------------------------------------------------------- comensales y servicios
+
+export function extractParty(text, { expecting = false } = {}) {
+  const t = normalize(text);
+  const groups = [...t.matchAll(new RegExp(`\\b(${NUM})\\s+(?:adultos?|ninos?|ninas?|criaturas|bebes?|peques?|mayores|jovenes|ninos)\\b`, 'g'))];
+  if (groups.length) {
+    const n = groups.reduce((s, g) => s + (toNumber(g[1]) ?? 0), 0);
+    if (n) return n;
+  }
+  let m = t.match(new RegExp(`\\b(${NUM})\\s+(?:personas?|pax|comensales|persoas?|gente)\\b`));
+  if (m) return toNumber(m[1]);
+  m = t.match(new RegExp(`\\b(?:para|somos|seremos|seriamos|mesa de|mesa para|grupo de|sitio para|sitio de|cabida para)\\s+(${NUM})\\b(?!\\s*(?::|h\\b|horas|de (?:la|el|los|las) ))`));
+  if (m) {
+    const n = toNumber(m[1]);
+    // «para las 9» no entra aquí (tras «para» va «las»); «para 2» sí.
+    if (n) return n;
+  }
+  m = t.match(new RegExp(`\\bsomos\\s+(${NUM})\\b`));
+  if (m) return toNumber(m[1]);
+  if (expecting) {
+    m = t.match(new RegExp(`^\\s*(?:para\\s+|somos\\s+)?(${NUM})\\s*(?:personas?|pax|comensales)?\\s*$`));
+    if (m) return toNumber(m[1]);
+  }
+  return null;
+}
+
+export function extractResource(text, biz) {
+  if (biz.booking?.mode !== 'staff') return null;
+  const t = normalize(text);
+  for (const r of biz.booking.resources) {
+    const name = normalize(r.name);
+    if (new RegExp(`\\b${name}\\b`).test(t)) return r.id;
+  }
+  if (R.anyone.test(t)) return 'any';
+  return null;
+}
+
+// -------------------------------------------------------------------------- reglas de rechazo
+
+// Rechazos propios del negocio (business.json -> refusals) y los comunes a todos.
+export function refusalFor(text, biz, flags = []) {
+  const t = normalize(text);
+  if (flags.includes('card')) return { id: 'card' };
+  if (R.injection.test(t)) return { id: 'injection' };
+  for (const r of biz.refusals ?? []) {
+    if (new RegExp(r.pattern, 'i').test(t)) return { id: r.id, reply: r.reply, handoff: Boolean(r.handoff) };
+  }
+  if (R.abuse.test(t)) return { id: 'abuse' };
+  return null;
+}
+
+// ------------------------------------------------------------------------------ tema de consulta
+
+// Qué alérgenos y dietas se mencionan: «sin gluten», «soy celíaca», «alérgico a los frutos secos».
+const ALLERGEN_WORDS = {
+  gluten: ['gluten', 'celiac', 'celiaco', 'celiaca', 'celiacos', 'trigo', 'harina'],
+  lacteos: ['lactosa', 'lacteo', 'lacteos', 'leche de vaca', 'intolerante a la lactosa'],
+  huevos: ['huevo', 'huevos', 'ovo'],
+  frutos_secos: ['frutos secos', 'fruto seco', 'nueces', 'nuez', 'almendra', 'almendras', 'avellana', 'avellanas', 'pistacho'],
+  pescado: ['pescado', 'pescados', 'peixe'],
+  crustaceos: ['crustaceo', 'crustaceos', 'marisco', 'mariscos', 'gambas', 'langostino', 'langostinos', 'bogavante'],
+  moluscos: ['molusco', 'moluscos', 'mejillon', 'mejillones', 'almeja', 'almejas', 'berberecho', 'pulpo', 'calamar'],
+  soja: ['soja'],
+  cacahuetes: ['cacahuete', 'cacahuetes', 'mani'],
+  sesamo: ['sesamo'],
+  mostaza: ['mostaza'],
+  apio: ['apio'],
+  sulfitos: ['sulfito', 'sulfitos'],
+  altramuces: ['altramuz', 'altramuces'],
+};
+const DIET_WORDS = {
+  vegano: ['vegano', 'vegana', 'veganos', 'veganas', 'vegan'],
+  vegetariano: ['vegetariano', 'vegetariana', 'vegetarianos', 'vegetarianas', 'veggie'],
+};
+
+export function detectDiet(text) {
+  const t = ` ${normalize(text).replace(/[^a-z0-9 ]+/g, ' ')} `;
+  const avoid = new Set();
+  for (const [allergen, words] of Object.entries(ALLERGEN_WORDS)) {
+    if (words.some((w) => t.includes(` ${w} `) || t.includes(` ${w}s `))) avoid.add(allergen);
+  }
+  const tags = [];
+  for (const [tag, words] of Object.entries(DIET_WORDS)) if (words.some((w) => t.includes(` ${w} `))) tags.push(tag);
+  const free = /\b(?:sin|libre de|libres de|apto para|apta para|aptos para|alergic[oa]s? a|alergia a|intolerante a|intolerancia a|celiac[oa]s?|intolerante|alergia|sen)\b/.test(normalize(text)) || /celiac/.test(t);
+  return { avoid: [...avoid], tags, free: Boolean(free) && (avoid.size > 0 || /celiac/.test(t)) };
+}
+
+// «lleva frutos secos», «contiene gluten», «tiene huevo»: pregunta por un producto concreto.
+export function asksContains(text) {
+  return /\b(?:lleva|llevan|contiene|contienen|tiene|tienen|incluye|incluyen|esta hecho|hecho con|lleva algo)\b/.test(normalize(text));
+}
+
+// Formas distintas de pedir lo mismo. Todo sobre texto sin tildes ni mayúsculas.
+const HOURS_VERB = '(?:abr\\w*|abre\\w*|abiert\\w*|aberto\\w*|cerr\\w*|cierr\\w*|pech\\w*|empiez\\w*|comienz\\w*|termin\\w*|acab\\w*|serv\\w*|atend\\w*|esta(?:is|n|mos)? (?:aqui|ahi|por ahi|en el local)|descans\\w*)';
+export const TOPICS = {
+  hours: new RegExp(
+    '\\b(?:horarios?|festivos?|dias? de (?:apertura|cierre|descanso|servicio)|que dias|cuantos dias|'
+    + `(?:cuando|cando|hasta cuando|ata cando|desde cuando|a que hora|hasta que hora|ata que hora|desde que hora|dende que hora|a partir de que hora|en que horario|que hora) (?:\\w+ )?${HOURS_VERB}|`
+    + `${HOURS_VERB} (?:a mediodia|por la tarde|por la noche|por la manana|todo el dia|los (?:lunes|martes|miercoles|jueves|viernes|sabados|domingos|festivos|fines de semana)|el (?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|luns|xoves|venres)|hoy|manana|hoxe|ahora|ya)|`
+    + 'esta\\w* (?:abiert\\w*|cerrad\\w*|aberto\\w*|pechad\\w*)|hasta que hora|hasta cuando (?:estais|estan|abri|abre)|a partir de que hora|desde que hora (?:abri|abre|serv|atend|puedo)|'
+    + `a que hora (?:\\w+ ){0,2}${HOURS_VERB}|`
+    + '(?:abri|abre|abren|cerrais|cierra|cierran|abrides|pechades|abris|abrireis|abrira|abriran)\\b|'
+    + 'a que hora (?:abri|abre|abren|cerr|cierr)|cuando puedo (?:ir|pasar|venir)|hora de (?:apertura|cierre)|cierre|apertura)\\b',
+  ),
+  address: /\b(?:direccion|ubicacion|localizacion|ubicad[oa]s?|donde (?:estais|esta|estan|queda|se encuentra|os encontrais|es|se llega|estades|queda)|onde (?:estades|queda|estan)|como (?:llegar|llego|se llega|ir)|en que (?:calle|zona|barrio)|que calle|mapa|como os encuentro|por donde|calle|aparcamiento|parking|aparcar|estacionamiento|transporte|autobus|cerca de)\b/,
+  phone: /\b(?:contactar|telefono|tlf|tfno|llamaros|llamar(?:os|les)?|puedo llamar|numero(?: de (?:contacto|telefono|movil))?|movil|whatsapp|wasap|correo|email|e-mail|mail|contactar(?:os)?|contacto|como (?:os )?contacto|chamar|telefonar)\b/,
+  price: /\b(?:cuanto (?:cuesta|cuestan|vale|valen|es|sale|salen|cobrais|cobras|costaria|me cuesta|me sale|cobran)|a cuanto|precio|precios|tarifa|tarifas|cuesta|cuestan|costo|costes?|prezo|prezos|canto (?:custa|valen|e)|que (?:cuesta|vale|precio)|presupuesto)\b/,
+  menu: /\b(?:carta|menu|menus|que (?:tenei?s|teneis|haceis|servis|ofreceis|ponen|hay|tienen|sirven|hacen|ofrecen|podemos pedir|puedo pedir|servicios|productos|se puede pedir|hay para (?:comer|cenar|desayunar|merendar|beber|tomar))|opciones|ofrecen|productos|servicios|catalogo|lista de|que se puede|que carta|que (?:cosas )?haceis|que tratamientos|que (?:tipos|clase)|que ofrece|especialidad(?:es)?|recomend\w+|sugerenci\w+)\b/,
+};
+
+// Todos los temas que toca un mensaje, en orden de aparición («¿dónde estáis y a qué hora abrís?»).
+export function detectTopics(text) {
+  const t = normalize(text);
+  const found = [];
+  for (const [name, re] of Object.entries(TOPICS)) {
+    const m = t.match(re);
+    if (m) found.push({ name, at: m.index ?? 0 });
+  }
+  return found.sort((x, y) => x.at - y.at).map((f) => f.name);
+}
+
+// Una segunda pregunta pegada a la primera («...y se puede ir con perro?»): el modelo la completa.
+export function hasExtraQuestion(norm, raw = '') {
+  return (raw.match(/\?/g) ?? []).length >= 2
+    || /\by (?:tambien |ademas )?(?:se puede|puedo|podemos|teneis|tienen|hay|aceptais|admiten|permiten|haceis|hacen|ofreceis|es posible|como|donde|cuando)\b/.test(norm);
 }

@@ -19,6 +19,24 @@
         </div>
         <div class="art"><biz-art kind="cake" /></div>
       </section>
+
+      <section id="tartas" class="tartas" aria-labelledby="t-t">
+        <header><h2 id="t-t">Tartas por encargo</h2><p>El precio es el de 8 raciones; el asistente te pregunta cuántas necesitas.</p></header>
+        <ul>
+          @for (t of tartas(); track t.id; let i = $index) {
+            <li [style.background]="tiles[i % tiles.length]">
+              <div class="glyph"><biz-art [kind]="glyphs[i % glyphs.length]" /></div>
+              <h3>{{ t.name }}</h3>
+              <p>{{ t.description }}</p>
+              <div class="foot-row">
+                <span class="price">{{ euro(t.price_cents, true) }}</span>
+                <span class="lead-t">{{ t.lead_hours && t.lead_hours >= 24 ? 'Con ' + (t.lead_hours / 24) + (t.lead_hours === 24 ? ' día' : ' días') : '' }}</span>
+              </div>
+              <button type="button" (click)="order(t)">Encargar <app-icon name="arrowRight" [size]="15" /></button>
+            </li>
+          }
+        </ul>
+      </section>
     </main>
   </biz-frame>
 } @else if (failed()) {

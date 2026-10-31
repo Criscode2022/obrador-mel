@@ -1,3 +1,72 @@
+<ng-template #cardTpl let-card let-msg="msg" let-ci="ci">
+  @switch (card.type) {
+    @case ('hours') {
+      <div class="card hours" role="group" [attr.aria-label]="card.title">
+        <p class="card-title">{{ card.title }}</p>
+        <dl>
+          @for (row of card.rows; track row.label) {
+            <div [class.today]="row.today"><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+          }
+        </dl>
+      </div>
+    }
+    @case ('menu') {
+      <div class="card menu" role="group" [attr.aria-label]="card.title">
+        <p class="card-title">{{ card.title }}</p>
+        <ul>
+          @for (row of rowsOf(card, msg.id + ci); track row.id) {
+            <li>
+              <span class="n">{{ row.name }}@if (row.note) { <small>{{ row.note }}</small> }</span>
+              <span class="p">{{ euro(row.price_cents, row.price_from) }}</span>
+            </li>
+          }
+        </ul>
+        @if (card.rows.length > 7) {
+          <button type="button" class="more" (click)="toggleRows(msg.id + ci)">
+            {{ expanded().has(msg.id + ci) ? 'Ver menos' : 'Ver las ' + card.rows.length }}
+          </button>
+        }
+      </div>
+    }
+    @default {
+      <div class="card detail" [attr.data-status]="card.status" role="group" [attr.aria-label]="card.title">
+        <div class="card-head">
+          <p class="card-title">{{ card.title }}</p>
+          <span class="state">{{ cardStatus(card.status) }}</span>
+        </div>
+        @if (card.lines?.length) {
+          <ul class="lines">
+            @for (l of card.lines; track l.index) {
+              <li>
+                @if (isLatestCard(msg, card)) {
+                  <span class="stepper" role="group" [attr.aria-label]="'Cantidad de ' + l.name">
+                    <button type="button" (click)="qty(l.index, -1)" aria-label="Quitar una unidad"><app-icon name="minus" [size]="14" [stroke]="2.2" /></button>
+                    <b>{{ l.qty }}</b>
+                    <button type="button" (click)="qty(l.index, 1)" aria-label="Añadir una unidad"><app-icon name="plus" [size]="14" [stroke]="2.2" /></button>
+                  </span>
+                } @else {
+                  <b class="q">{{ l.qty }}×</b>
+                }
+                <span class="n">{{ l.name }}@if (l.option) { <small>{{ l.option }}</small> }</span>
+                <span class="p">{{ euro(l.total_cents) }}</span>
+              </li>
+            }
+          </ul>
+          <p class="total"><span>Total</span><strong>{{ euro(card.total_cents) }}</strong></p>
+        }
+        @if (card.rows?.length) {
+          <dl>
+            @for (row of card.rows; track row.label) {
+              <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+            }
+          </dl>
+        }
+        @if (card.pay && card.status !== 'confirmed') { <p class="pay">{{ card.pay }}</p> }
+      </div>
+    }
+  }
+</ng-template>
+
 @if (ui.chatOpen()) {
   <section class="chat" role="dialog" aria-modal="false" [attr.aria-label]="'Asistente de ' + profile().name">
     <header class="head">
@@ -38,6 +107,9 @@
         <div class="msg" [attr.data-role]="m.role">
           @if (m.role !== 'user') { <span class="from">{{ fromLabel(m) }}</span> }
           <div class="bubble">{{ m.text }}</div>
+          @for (card of m.meta?.cards ?? []; track $index; let ci = $index) {
+            <ng-container [ngTemplateOutlet]="cardTpl" [ngTemplateOutletContext]="{ $implicit: card, msg: m, ci: ci }" />
+          }
           @if (last && !busy() && m.role !== 'user' && m.meta?.chips?.length) {
             <div class="chips" role="group" aria-label="Respuestas rápidas">
               @for (c of m.meta?.chips ?? []; track $index) {

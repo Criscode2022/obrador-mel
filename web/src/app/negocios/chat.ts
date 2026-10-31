@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, OnDestroy, OnInit } from '@angular/core';
 import { Icon } from '../icon';
 import { BizApi } from './biz-api';
@@ -12,7 +13,7 @@ import { BizUi } from './biz-ui';
 // queda pendiente de que lo confirme una persona desde el panel del local.
 @Component({
   selector: 'biz-chat',
-  imports: [Icon],
+  imports: [Icon, NgTemplateOutlet],
   templateUrl: './chat.html',
   styleUrl: './chat.scss',
   host: { '(document:keydown.escape)': 'onEscape()' },

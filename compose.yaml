@@ -1,0 +1,41 @@
+# Postgres y Qdrant para desarrollo. Ollama corre fuera de Docker, en la propia máquina.
+# Los puertos solo escuchan en 127.0.0.1 y no chocan con un Postgres o un Qdrant ya instalados.
+name: obrador-mel
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-obrador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-obrador}
+      POSTGRES_DB: ${POSTGRES_DB:-obrador}
+      TZ: Europe/Madrid
+      PGTZ: Europe/Madrid
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-obrador} -d ${POSTGRES_DB:-obrador}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      # La imagen no trae curl ni wget: basta con abrir el puerto.
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/6333'"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:${QDRANT_PORT:-56333}:6333"
+
+volumes:
+  postgres_data:
+  qdrant_data:

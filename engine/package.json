@@ -7,6 +7,10 @@
     "node": ">=24"
   },
   "scripts": {
+    "schema": "node apply-schema.mjs",
     "test": "node --test \"*.test.mjs\" \"biz/*.test.mjs\""
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
   }
 }

@@ -217,12 +217,14 @@ function cancel(c) {
 }
 
 async function unsupported(c) {
-  // «¿Hacéis reservas?» en un local que no las gestiona: que responda el conocimiento del negocio.
-  const answered = await infoStep(c);
-  if (answered && c.replies.length) return;
-  c.replies.pop();
-  c.request = null;
-  c.state.done = false;
+  // «¿Hacéis reservas?» pregunta: que responda el conocimiento. «Quiero reservar» pide: se le dice que no.
+  if (!c.signals.want_kw) {
+    const answered = await infoStep(c);
+    if (answered && c.replies.length) return;
+    c.replies.pop();
+    c.request = null;
+    c.state.done = false;
+  }
   const what = c.signals.primary === 'booking_unsupported' ? c.t('reservas', 'reservas') : c.t('pedidos', 'pedidos');
   c.say({
     text: c.t(`Aquí no gestiono ${what}. Puedes llamar al ${c.biz.phone} y te atienden.`, `Aquí non xestiono ${what}. Podes chamar ao ${c.biz.phone} e atendente.`),

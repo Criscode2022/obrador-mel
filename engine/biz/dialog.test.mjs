@@ -232,10 +232,18 @@ test('un botón no se salta la limpieza: ni la etiqueta ni el valor guardan una 
   assert.equal(actionLabel({ type: 'notes' }, card), 'tarjeta [TARJETA]');
 });
 
-test('reservar en un negocio que no reserva lo dice sin inventar', async () => {
-  const [out] = await talk(['quiero reservar una mesa para el sábado']);
+test('quien pide reservar en un negocio que no reserva lo sabe a la primera', async () => {
+  const kbAnswer = async () => { throw new Error('no debía llamarse'); };
+  const [out] = await talk(['quiero reservar una mesa para el sábado'], { kbAnswer });
   assert.equal(out.state.intent, null);
-  assert.match(texts(out), /prefiero no inventarlo|no gestiono reservas/);
+  assert.equal(out.request, null);
+  assert.match(texts(out), /no gestiono reservas/);
+});
+
+test('quien pregunta si se reserva recibe lo que diga el conocimiento', async () => {
+  const kbAnswer = async () => ({ text: 'No tenemos sala.', no_data: false, model: 'prueba', tokens_out: 4, ms: 9, used: [] });
+  const [out] = await talk(['¿hacéis reservas?'], { kbAnswer });
+  assert.match(texts(out), /No tenemos sala/);
 });
 
 test('un saludo con pregunta contesta la pregunta', async () => {

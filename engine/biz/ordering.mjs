@@ -374,7 +374,7 @@ function orderStepInner(c) {
   if (s.phone) o.phone = s.phone;
   if (state.awaiting === 'notes') {
     if (s.no_notes || s.no) o.note = '';
-    else if (s.raw.trim() && s.when.min == null) o.note = s.raw.replace(/^\s*(?:si|sí|vale|ok)[,.]?\s*/i, '').trim().slice(0, 240);
+    else if (s.text.trim() && s.when.min == null) o.note = s.text.replace(/^\s*(?:si|sí|vale|ok)[,.]?\s*/i, '').trim().slice(0, 240);
   }
   if (!settled) {
     return c.say({ text: c.t('No encuentro un hueco de recogida con ese plazo en los próximos días.', 'Non atopo un oco de recollida con ese prazo nos próximos días.') });

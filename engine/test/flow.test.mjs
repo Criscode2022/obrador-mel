@@ -270,6 +270,20 @@ test('un DNI, con guion o sin él, no llega a la base de datos', async () => {
   }
 });
 
+test('un DNI escrito en las notas no llega a la base de datos', async () => {
+  const session = newSession();
+  let r = await say(session, undefined, 'dos palmeras para el sábado a las 11 a nombre de Iria, teléfono 655444333');
+  r = await say(session, r.case_id, 'mi dni es 12345678Z por si hace falta');
+  assert.ok(!(await everything(r.case_id)).includes('12345678'));
+});
+
+test('un botón manipulado no cuela una tarjeta', async () => {
+  const session = newSession();
+  let r = await say(session, undefined, 'dos palmeras para el sábado a las 11 a nombre de Iria, teléfono 655444333');
+  r = await press(session, r.case_id, { type: 'notes', value: `tarjeta ${CARD}` }, `tarjeta ${CARD}`);
+  assert.ok(!(await everything(r.case_id)).includes('4111'));
+});
+
 test('el nivel de datos personales del expediente sale del mensaje original', async () => {
   const out = await say(newSession(), undefined, 'mi dni es 12345678Z, ¿abrís mañana?');
   const [row] = await rows('SELECT pii_level, summary FROM cases WHERE id = $1', out.case_id);

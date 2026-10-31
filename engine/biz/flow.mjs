@@ -52,7 +52,7 @@ export function cleanAction(raw) {
     const v = raw[key];
     if (v == null) continue;
     if (typeof v === 'number' && Number.isFinite(v)) out[key] = v;
-    else if (typeof v === 'string') out[key] = v.slice(0, 120);
+    else if (typeof v === 'string') out[key] = scrub(v).text.slice(0, 120);
     else throw fail(400, `acción: «${key}» inválido`);
   }
   return out;
@@ -166,8 +166,8 @@ function replyMeta(r) {
   return Object.keys(meta).length ? meta : null;
 }
 
-function actionLabel(a, label) {
-  if (label) return String(label).slice(0, 80);
+export function actionLabel(a, label) {
+  if (label) return scrub(label).text.slice(0, 80);
   return `[${a.type}${a.value != null ? `: ${a.value}` : ''}]`;
 }
 

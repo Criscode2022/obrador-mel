@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { peluqueria, restaurante } from '../test/fixtures/index.mjs';
 import { turn } from './dialog.mjs';
+import { actionLabel, cleanAction } from './flow.mjs';
 import { getBusiness } from './store.mjs';
 
 const NOW = new Date('2026-10-15T06:30:00Z'); // jueves 08:30 en Madrid
@@ -207,6 +208,17 @@ test('varias preguntas en un mensaje se contestan todas', async () => {
   assert.match(texts(out), /abrimos/);
 });
 
+test('notas: lo que se guarda va sin tarjeta ni DNI', async () => {
+  const log = await talk(['dos palmeras para el sábado a las 11 a nombre de Iria, teléfono 655444333', 'mi dni es 12345678Z por si hace falta']);
+  assert.equal(log[1].state.order.note, 'mi dni es [DNI] por si hace falta');
+});
+
+test('un botón no se salta la limpieza: ni la etiqueta ni el valor guardan una tarjeta', () => {
+  const card = 'tarjeta 4111 1111 1111 1111';
+  assert.equal(cleanAction({ type: 'notes', value: card }).value, 'tarjeta [TARJETA]');
+  assert.equal(actionLabel({ type: 'notes' }, card), 'tarjeta [TARJETA]');
+});
+
 test('reservar en un negocio que no reserva lo dice sin inventar', async () => {
   const [out] = await talk(['quiero reservar una mesa para el sábado']);
   assert.equal(out.state.intent, null);
@@ -227,9 +239,10 @@ test('mesa: datos de uno en uno hasta una solicitud pendiente', async () => {
   assert.ok(log.slice(0, -1).every((o) => !o.request), 'nada se envía hasta confirmar');
 });
 
-test('mesa: un grupo grande pasa a una persona', async () => {
-  const [out] = await talk(['mesa para 12 el viernes'], { found: rest });
+test('mesa: un grupo grande pasa a una persona, sin guardar el DNI que traiga el mensaje', async () => {
+  const [out] = await talk(['mesa para 12 el viernes, mi dni es 12345678Z'], { found: rest });
   assert.equal(out.request.kind, 'handoff');
+  assert.ok(!out.request.data.text.includes('12345678'));
 });
 
 test('mesa: un día cerrado no se acepta', async () => {

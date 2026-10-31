@@ -316,7 +316,7 @@ function merge(c) {
   if (s.phone) b.phone = s.phone;
   if (state.awaiting === 'notes') {
     if (s.no_notes || s.no) b.note = '';
-    else if (s.raw.trim() && s.when.min == null) b.note = s.raw.replace(/^\s*(?:si|sí|vale|ok)[,.]?\s*/i, '').trim().slice(0, 240);
+    else if (s.text.trim() && s.when.min == null) b.note = s.text.replace(/^\s*(?:si|sí|vale|ok)[,.]?\s*/i, '').trim().slice(0, 240);
   }
 }
 
@@ -359,7 +359,7 @@ function bookingStepInner(c) {
       state.done = true;
       c.request = {
         kind: 'handoff', status: 'pending', slot_start: null, slot_end: null, total_cents: null,
-        data: { lang: c.lang, reason: 'group', party: b.party, ymd: b.ymd ?? null, time: b.min != null ? fmtTime(b.min) : null, text: s.raw.slice(0, 280) },
+        data: { lang: c.lang, reason: 'group', party: b.party, ymd: b.ymd ?? null, time: b.min != null ? fmtTime(b.min) : null, text: s.text.slice(0, 280) },
       };
       return c.say({
         text: c.t(

@@ -81,6 +81,118 @@ function optionPhrases(catalog) {
 
 const sameTokens = (tokens, i, phrase) => phrase.every((p, k) => tokens[i + k] != null && singular(tokens[i + k]) === singular(p));
 
+const AND = new Set(['y', 'e']);
+const OTHER = new Set(['otro', 'otra', 'otros', 'otras']);
+
+function phraseTokens(phrase) {
+  return String(phrase).replace(/^\^/, '').split(' ').filter(Boolean);
+}
+
+function seedOf(match, catalog) {
+  if (match?.itemId) return catalog.byId.get(match.itemId) ?? null;
+  const id = catalog.ambiguous?.[match?.ambiguous]?.candidates?.[0];
+  return id ? catalog.byId.get(id) ?? null : null;
+}
+
+function headOf(item) {
+  const fromName = normalize(item.name).split(/\s+/).map(singular).filter(Boolean)[0];
+  return fromName || phraseTokens(item.phrases[0] ?? '')[0] || '';
+}
+
+// «1 de limón» tras «2 tartas de santiago»: el nombre (tarta) no se repite.
+function itemFromFlavor(catalog, flavor, seed) {
+  const flav = flavor.map(singular);
+  if (!flav.length || !seed) return null;
+  const same = [];
+  const other = [];
+  for (const it of catalog.items) (it.category === seed.category ? same : other).push(it);
+  const head = headOf(seed);
+  const attempts = [];
+  if (head) {
+    attempts.push([head, 'de', ...flav]);
+    attempts.push([head, ...flav]);
+  }
+  attempts.push(flav);
+  let best = null;
+  for (const it of [...same, ...other]) {
+    for (const ph of it.phrases) {
+      const pt = phraseTokens(ph);
+      for (const att of attempts) {
+        if (pt.length !== att.length || pt.some((p, k) => p !== att[k])) continue;
+        if (!best || att.length > best.len) best = { item: it, len: att.length };
+      }
+    }
+  }
+  return best?.item ?? null;
+}
+
+function continuationAt(tokens, used, i) {
+  if (used[i]) return null;
+  let j = i;
+  let qty = null;
+  let signal = false;
+  if (AND.has(tokens[j])) {
+    j += 1;
+    signal = true;
+  }
+  if (j >= tokens.length || used[j]) return null;
+  const q = quantityAt(tokens, j);
+  if (q) {
+    qty = q.qty;
+    j += q.len;
+    signal = true;
+  } else if (OTHER.has(tokens[j])) {
+    qty = 1;
+    j += 1;
+    signal = true;
+  }
+  let hadDe = false;
+  if (j < tokens.length && !used[j] && tokens[j] === 'de') {
+    j += 1;
+    hadDe = true;
+    signal = true;
+  }
+  if (!signal || (!hadDe && qty == null && !AND.has(tokens[i]))) return null;
+  const flavorStart = j;
+  const flavor = [];
+  while (j < tokens.length && !used[j] && flavor.length < 3) {
+    const w = tokens[j];
+    if (AND.has(w) || w === 'de' || CONNECTORS.has(w) || NOT_PRODUCTS.has(singular(w)) || quantityAt(tokens, j)) break;
+    flavor.push(w);
+    j += 1;
+  }
+  if (!flavor.length) return null;
+  return { from: i, flavorStart, flavorEnd: flavorStart + flavor.length, qty: qty ?? 1, flavor };
+}
+
+function fillEllipsis(tokens, used, matches, catalog) {
+  let i = 0;
+  while (i < tokens.length) {
+    if (used[i]) {
+      i += 1;
+      continue;
+    }
+    const prev = matches.filter((m) => m.end <= i).at(-1);
+    const seed = seedOf(prev, catalog);
+    const span = seed ? continuationAt(tokens, used, i) : null;
+    const item = span ? itemFromFlavor(catalog, span.flavor, seed) : null;
+    if (!span || !item) {
+      i += 1;
+      continue;
+    }
+    matches.push({
+      start: span.flavorStart,
+      end: span.flavorEnd,
+      itemId: item.id,
+      ambiguous: null,
+      hintQty: span.qty,
+    });
+    for (let k = span.from; k < span.flavorEnd; k += 1) used[k] = true;
+    i = span.flavorEnd;
+  }
+  matches.sort((a, b) => a.start - b.start);
+}
+
 // -> { lines, ambiguous, unknown, mode }
 //   lines:     [{ item_id, qty, options: { grupo: 'opcion' }, at }]
 //   ambiguous: [{ key, name, qty, candidates, options, at }]   («una tarta»: ¿cuál?)
@@ -119,10 +231,11 @@ export function findItems(text, catalog) {
     }
   }
   matches.sort((a, b) => a.start - b.start);
+  fillEllipsis(tokens, used, matches, catalog);
 
   // Cantidades: justo antes del producto («dos palmeras»), o con «x2» tras él.
   for (const m of matches) {
-    let qty = null;
+    let qty = m.hintQty ?? null;
     for (let back = 1; back <= 3 && qty == null; back += 1) {
       const j = m.start - back;
       if (j < 0 || matches.some((o) => o !== m && o.end > j && o.start <= j)) break;

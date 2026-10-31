@@ -17,6 +17,14 @@ test('cantidades en cifra, en letra, por docenas y por pares', () => {
   assert.deepEqual(ids('palmera x3'), [['palmera', 3]]);
 });
 
+test('el sabor sin repetir el nombre: «2 tartas de santiago y 1 de limón»', () => {
+  assert.deepEqual(ids('quiero 2 tartas de santiago y 1 de limón para recoger mañana'), [['tarta-santiago', 2], ['tarta-limon', 1]]);
+  assert.deepEqual(ids('una tarta de santiago y otra de limón'), [['tarta-santiago', 1], ['tarta-limon', 1]]);
+  assert.deepEqual(ids('2 de santiago y 1 de limón'), [['tarta-santiago', 2], ['tarta-limon', 1]]);
+  assert.deepEqual(ids('2 tartas de santiago, 1 de limón y 1 de queso'), [['tarta-santiago', 2], ['tarta-limon', 1], ['tarta-queso', 1]]);
+  assert.deepEqual(ids('una tarta de santiago y una tarta de limón'), [['tarta-santiago', 1], ['tarta-limon', 1]]);
+});
+
 test('producto ambiguo: «una tarta» no se decide sola', () => {
   const found = findItems('una tarta', catalog);
   assert.equal(found.lines.length, 0);

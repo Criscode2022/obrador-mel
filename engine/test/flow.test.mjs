@@ -128,7 +128,9 @@ test('proponer otra hora y aceptarla mueve el pedido y su tarjeta', async () => 
   assert.equal(done.request.data.time, other.time);
   assert.equal('proposed' in done.request.data, false);
   const conv = await conversation({ slug, session, caseId: sent.case_id });
+  const card = conv.messages.at(-1).meta.cards[0];
   assert.match(conv.messages.at(-1).text, new RegExp(other.time));
+  assert.ok(card.rows.find((r) => r.label === 'Recogida').value.includes(other.time), JSON.stringify(card.rows));
   const md = fs.readFileSync(path.join(OUT, `${sent.case_id}.md`), 'utf8');
   assert.match(md, /- solicitud: order · confirmed/);
   assert.ok(md.includes(`- recogida: 2026-10-17 ${other.time}`), md);

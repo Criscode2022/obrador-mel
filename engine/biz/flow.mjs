@@ -6,6 +6,7 @@ import { embedModel } from '../llm.mjs';
 import { classify, scrub } from '../pii.mjs';
 import { freshState } from './ctx.mjs';
 import { turn } from './dialog.mjs';
+import { dayLong, dayRel } from './format.mjs';
 import { answerFromKb, collectionOf, promptSha, retrieve } from './kb.mjs';
 import { analyze } from './nlu.mjs';
 import {
@@ -388,6 +389,20 @@ export async function chatTurn({
 
 // ----------------------------------------------------------------- cambio propuesto por el local
 
+// La tarjeta del pedido o la reserva con la hora nueva: si no, seguiría enseñando la que se cambió.
+function rescheduled(card, when, lang, now) {
+  if (!card) return card;
+  const rows = card.rows.map((row) => {
+    if (['Recogida', 'Recollida'].includes(row.label)) {
+      return { ...row, value: `${dayRel(when.ymd, lang, now).replace(/^./, (x) => x.toUpperCase())}, ${when.time}` };
+    }
+    if (row.label === 'Día') return { ...row, value: dayLong(when.ymd, lang) };
+    if (row.label === 'Hora') return { ...row, value: row.value.replace(/^\d{2}:\d{2}/, when.time) };
+    return row;
+  });
+  return { ...card, rows };
+}
+
 async function changeAnswer({ kase, primary, act, label, slug, business, now }) {
   const id = kase.id;
   if (primary.status !== 'change_proposed' || !primary.data?.proposed) {
@@ -398,7 +413,9 @@ async function changeAnswer({ kase, primary, act, label, slug, business, now }) 
   const p = primary.data.proposed;
   let reply;
   if (act.type === 'change_accept') {
-    const data = { ...primary.data, ymd: p.ymd, time: p.time, min: p.min, proposed: undefined, accepted_change: true };
+    const data = {
+      ...primary.data, ymd: p.ymd, time: p.time, min: p.min, proposed: undefined, accepted_change: true, card: rescheduled(primary.data.card, p, lang, now),
+    };
     delete data.proposed;
     const start = p.start;
     const end = p.end;

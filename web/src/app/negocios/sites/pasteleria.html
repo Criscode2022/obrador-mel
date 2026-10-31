@@ -56,7 +56,21 @@
         <header><h2 id="t-s">Del día en el mostrador</h2><p>Para recoger en el momento, sin encargo previo.</p></header>
         <biz-menu [profile]="p" mode="order" [showAllergens]="true" [categories]="['individuales','panaderia','regalos']" label="Categorías del mostrador" />
       </section>
+
+      <section id="visita" class="visit" aria-labelledby="t-v">
+        <div>
+          <h2 id="t-v">El obrador</h2>
+          <address>
+            <p><app-icon name="pin" [size]="18" /> {{ p.address }}</p>
+            <p><app-icon name="phone" [size]="18" /> {{ p.phone }}</p>
+            <p><app-icon name="mail" [size]="18" /> {{ p.email }}</p>
+          </address>
+          <p class="small">Trabajamos con gluten, frutos secos, huevo y lácteos en el mismo espacio. Si tienes una alergia, díselo al asistente: una persona lo confirma contigo.</p>
+        </div>
+        <dl class="hours">@for (r of hours(p); track r.day) { <div><dt>{{ r.day }}</dt><dd>{{ r.value }}</dd></div> }</dl>
+      </section>
     </main>
+    <footer class="foot"><p><strong>Obrador Mel</strong> es un negocio ficticio creado como proyecto de portafolio. Los encargos de esta página son de prueba.</p></footer>
   </biz-frame>
 } @else if (failed()) {
   <div class="state"><p>No se ha podido cargar la demo.</p><button type="button" (click)="load()">Reintentar</button></div>

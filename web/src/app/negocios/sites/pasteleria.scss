@@ -59,6 +59,19 @@ h1 { font-size: clamp(44px, 6.6vw, 92px); line-height: 1.02; }
 .chips button:hover { background: var(--bz-bg); color: var(--bz-ink); }
 
 .shop { max-width: 940px; margin: 0 auto; padding: clamp(56px, 8vw, 110px) clamp(18px, 4vw, 40px) 20px; scroll-margin-top: 120px; }
+.visit { max-width: 1176px; margin: 0 auto; padding: clamp(56px, 8vw, 110px) clamp(18px, 5vw, 40px); display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 72px); scroll-margin-top: 110px; }
+.visit h2 { font-size: clamp(34px, 4.6vw, 56px); margin-bottom: 20px; }
+address { font-style: normal; display: grid; gap: 10px; }
+address p { margin: 0; display: flex; gap: 12px; align-items: center; }
+address app-icon { color: var(--bz-accent); }
+.small { color: var(--bz-muted); margin-top: 18px; max-width: 32em; }
+.hours { margin: 0; align-self: start; background: var(--bz-surface); border: 1px solid var(--bz-line); border-radius: var(--bz-radius); padding: 14px 24px; }
+.hours div { display: flex; justify-content: space-between; gap: 20px; padding: 11px 0; border-bottom: 1px dashed var(--bz-line); }
+.hours div:last-child { border: 0; }
+.hours dt { color: var(--bz-muted); }
+.hours dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.foot { padding: 28px clamp(18px, 5vw, 72px) 110px; border-top: 1px solid var(--bz-line); color: var(--bz-muted); font-size: 14px; }
+.foot p { margin: 0; max-width: 60em; }
 @media (max-width: 960px) {
   .hero, .visit { grid-template-columns: 1fr; }
   .art { order: -1; width: min(80%, 380px); }

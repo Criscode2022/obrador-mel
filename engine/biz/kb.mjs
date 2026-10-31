@@ -2,10 +2,12 @@
 // kb_<slug>), búsqueda híbrida (embeddings + palabras) y respuesta con el modelo local
 // sin salirse del contexto. Si el modelo falla, se pasa de contexto o inventa un precio o una
 // hora, se responde con el texto del propio trozo: la respuesta nunca vale más que sus fuentes.
+import fs from 'node:fs';
+import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { readEnv } from '../config.mjs';
-import { embedModel, ollamaEmbed } from '../llm.mjs';
-import { rangesLabel } from './avail.mjs';
+import { readEnv, root } from '../config.mjs';
+import { embedModel, ollamaComplete, ollamaEmbed } from '../llm.mjs';
+import { dayRanges, nowMinutes, rangesLabel, todayYmd } from './avail.mjs';
 import { getBusiness } from './store.mjs';
 import { normalize, singular } from './text.mjs';
 
@@ -240,3 +242,104 @@ export async function retrieve(slug, query, { k = 4 } = {}) {
   }).sort((a, b) => b.score - a.score).slice(0, k);
   return { hits, degraded, ms: Date.now() - t0 };
 }
+
+// ---------------------------------------------------------------------------- respuesta
+
+export const NO_DATA_SCORE = 0.2;
+
+const PROMPT_FILE = 'negocio.md';
+const PROMPT_LANG = { es: 'castellano', gl: 'gallego' };
+
+function promptFor(biz, lang, now) {
+  const tpl = fs.readFileSync(path.join(root, 'prompts', PROMPT_FILE), 'utf8');
+  const ymd = todayYmd(now);
+  const day = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(now);
+  const ranges = dayRanges(biz, ymd);
+  const open = ranges.some(([a, b]) => nowMinutes(now) >= a && nowMinutes(now) < b);
+  const hasHours = Object.values(biz.hours ?? {}).some((r) => r?.length);
+  const today = !hasHours ? '' : ranges.length ? `Hoy el local abre ${rangesLabel(ranges)}${open ? ' y ahora está abierto' : ' y ahora está cerrado'}.` : 'Hoy el local está cerrado.';
+  return tpl
+    .replaceAll('{{NEGOCIO}}', biz.name)
+    .replaceAll('{{TIPO}}', biz.label.toLowerCase())
+    .replaceAll('{{TONO}}', biz.assistant?.tone ?? 'cercano y claro')
+    .replaceAll('{{IDIOMA}}', PROMPT_LANG[lang] ?? 'castellano')
+    .replaceAll('{{AHORA}}', `Ahora es ${day} (hora de Madrid). ${today}`.trim());
+}
+
+export function promptSha() {
+  return createHash('sha256').update(fs.readFileSync(path.join(root, 'prompts', PROMPT_FILE), 'utf8')).digest('hex').slice(0, 12);
+}
+
+// Importes y horas de una respuesta que no estén en el contexto: señal de invención.
+export function unsupportedFacts(answer, context) {
+  const ctx = normalize(context).replace(/\s+/g, ' ');
+  const bad = [];
+  for (const m of String(answer).matchAll(/(\d+(?:[.,]\d{1,2})?)\s*(?:€|euros?)/gi)) {
+    const n = m[1].replace(',', '.');
+    const variants = [n, Number(n).toFixed(2), Number(n).toFixed(2).replace('.', ','), n.replace('.', ',')];
+    const pattern = variants.map((v) => v.replace('.', '[.,]')).join('|');
+    if (!new RegExp(`(?<![\\d.,])(?:${pattern})(?:\\s*(?:€|euros?|eur))?(?![\\d])`).test(ctx)) bad.push(m[0]);
+  }
+  // Plazos y duraciones («48 horas», «cuatro días», «75 minutos»): tienen que estar en el contexto.
+  const WORDS = { un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, quince: 15, veinte: 20 };
+  const unit = (u) => (u.startsWith('hora') ? 'hora' : u.startsWith('minuto') ? 'minuto' : u.startsWith('dia') ? 'dia' : u.startsWith('semana') ? 'semana' : 'mes');
+  const asQty = (text) => {
+    const out = new Set();
+    for (const m of normalize(text).matchAll(/\b(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince|veinte)\s+(minutos?|horas?|dias?|semanas?|mes(?:es)?)\b/g)) {
+      out.add(`${/^\d/.test(m[1]) ? Number(m[1]) : WORDS[m[1]]} ${unit(m[2])}`);
+    }
+    return out;
+  };
+  const known = asQty(context);
+  for (const q of asQty(answer)) if (!known.has(q)) bad.push(q);
+  for (const m of String(answer).matchAll(/\b(\d{1,2})[:.](\d{2})\b/g)) {
+    const h = Number(m[1]);
+    const mm = m[2];
+    const re = new RegExp(`(?<![\\d])0?${h}[:.]${mm}(?![\\d])`);
+    if (!re.test(ctx)) bad.push(m[0]);
+  }
+  return bad;
+}
+
+const cleanAnswer = (text) => String(text)
+  .replace(/<think>[\s\S]*?<\/think>/g, '')
+  .replace(/^\s*(?:respuesta|answer|asistente)\s*:\s*/i, '')
+  .replace(/[*_`#>]+/g, '')
+  .replace(/\s*\n+\s*/g, ' ')
+  .trim();
+
+// Primeras frases del mejor trozo, como respuesta de reserva.
+function excerpt(text, max = 2) {
+  const sentences = String(text).replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+/g) ?? [text];
+  return sentences.slice(0, max).join(' ').trim();
+}
+
+// -> { text, no_data, fallback, model, tokens_in, tokens_out, ms, reason, unsupported }
+export async function answerFromKb({ biz, slug, text, lang = 'es', hits, history = [], now = new Date(), complete = ollamaComplete }) {
+  const best = hits[0];
+  if (!best || best.score < NO_DATA_SCORE) return { text: '', no_data: true, fallback: false, reason: 'sin contexto suficiente', ms: 0 };
+  const usable = hits.filter((h) => h.score >= Math.max(NO_DATA_SCORE, best.score * 0.45)).slice(0, 4);
+  const context = usable.map((h, i) => `[${i + 1}] ${h.kind === 'doc' && h.title !== h.heading ? `${h.title} — ` : ''}${h.heading}: ${h.text}`).join('\n').slice(0, 3000);
+  const messages = [
+    { role: 'system', content: promptFor(biz, lang, now) },
+    ...history.slice(-4).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.text).slice(0, 400) })),
+    { role: 'user', content: `CONTEXTO:\n${context}\n\nPREGUNTA DEL CLIENTE: ${String(text).slice(0, 500)}` },
+  ];
+  let out;
+  try {
+    out = await complete(messages, { numPredict: 160, temperature: 0.1, timeoutMs: 14000 });
+  } catch (err) {
+    return { text: excerpt(best.text), no_data: false, fallback: true, reason: err instanceof Error ? err.message : String(err), ms: 0, used: usable };
+  }
+  const answer = cleanAnswer(out.content);
+  const base = { model: out.model, tokens_in: out.tokens_in, tokens_out: out.tokens_out, ms: out.ms, used: usable };
+  const refusalLike = /^(?:lo siento|disculpa|perdona|sorry)?[, ]*(?:solo puedo ayudarte|no tengo (?:datos|informaci[oó]n|ese dato)|no puedo ayudarte|no dispongo|i (?:do not|don't|cannot|can't) (?:have|help|find)|i can only help)/i.test(answer)
+    || /\bno tengo (?:datos|informaci[oó]n) (?:en el contexto|sobre)/i.test(answer);
+  if (!answer || /^NO_?DATA\b/i.test(answer) || refusalLike) return { ...base, text: '', no_data: true, fallback: false, reason: 'el modelo no encontró la respuesta en el contexto' };
+  const unsupported = unsupportedFacts(answer, `${context}\n${factsText(biz)}`);
+  if (unsupported.length) {
+    return { ...base, text: excerpt(best.text), no_data: false, fallback: true, reason: `datos no respaldados por el contexto: ${unsupported.join(', ')}`, unsupported };
+  }
+  return { ...base, text: answer.slice(0, 700), no_data: false, fallback: false, reason: 'respuesta del modelo con contexto' };
+}
+

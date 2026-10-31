@@ -2,6 +2,9 @@
 // (reservar, pedir, preguntar...), y los datos sueltos (día, hora, personas, servicios,
 // productos, nombre, teléfono). Lo que el cliente dice se contrasta después con el
 // negocio: aquí solo se lee, no se decide nada.
+import { parseWhenBiz } from './dates.mjs';
+import { findItems } from './orders.mjs';
+import { scrub } from '../pii.mjs';
 import { NUMBER_WORDS, normalize, toNumber } from './text.mjs';
 
 const NUM = `(?:\\d{1,2}|${Object.keys(NUMBER_WORDS).join('|')})`;
@@ -219,3 +222,105 @@ export function hasExtraQuestion(norm, raw = '') {
   return (raw.match(/\?/g) ?? []).length >= 2
     || /\by (?:tambien |ademas )?(?:se puede|puedo|podemos|teneis|tienen|hay|aceptais|admiten|permiten|haceis|hacen|ofreceis|es posible|como|donde|cuando)\b/.test(norm);
 }
+
+// ----------------------------------------------------------------------------------- análisis
+
+const clean = (s) => normalize(s).replace(/[^a-z0-9ñ ]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+// -> señales del mensaje. `state` aporta lo que se estaba preguntando (`awaiting`).
+export function analyze(text, { biz, catalog, state = {}, now = new Date() }) {
+  const raw = String(text ?? '');
+  const scrubbed = scrub(raw);
+  const t = clean(scrubbed.text);
+  const lang = detectLang(raw, state.lang ?? 'es');
+  const caps = new Set(biz.capabilities);
+  const awaiting = state.awaiting ?? null;
+
+  const words = t ? t.split(' ') : [];
+  const short = words.length <= 5;
+  const items = findItems(scrubbed.text, catalog);
+  const when = parseWhenBiz(scrubbed.text, {
+    biz,
+    now,
+    ymdHint: state.booking?.ymd ?? state.order?.ymd ?? null,
+    bare: ['time', 'pickup', 'pick_slot'].includes(awaiting),
+  });
+
+  const hasItems = items.lines.length > 0 || items.ambiguous.length > 0;
+  // Un negocio que solo informa no reserva ni pide: ahí «mesa» es una palabra normal.
+  const transactional = caps.has('booking') || caps.has('order');
+  const bookingKw = transactional && R.booking.test(t);
+  // «¿qué puedo pedir?» pregunta por las opciones: no es un pedido.
+  const asksOptions = /\bque (?:puedo|podemos|se puede|me|nos)\s*(?:\w+ )?(?:pedir|tomar|comer|beber|recomiendas|recomendais|aconsejas)\b|\brecomend\w+|\bque pido\b/.test(t);
+  const wantKw = R.want.test(t);
+  const asking = R.question.test(raw) || R.question.test(t);
+  // «¿cuánta antelación hay que...?», «¿cómo se encarga?»: pregunta por el proceso, no pide nada.
+  const processQuestion = asking && !wantKw
+    && /\b(?:cuanta|cuanto|cuantos|cuantas|como|cuando|donde|cual|cuales|por que|hay que|hace falta|se puede|se pueden|es posible|que (?:antelacion|plazo|tiempo))\b/.test(t)
+    && !/\b(?:ponme|dame|me pones|me das|preparame|apuntame)\b/.test(t);
+  const orderKw = transactional && R.orderStrong.test(t) && !asksOptions && !processQuestion;
+  const refusal = refusalFor(scrubbed.text, biz, scrubbed.flags);
+  const diet = detectDiet(scrubbed.text);
+  const topics = detectTopics(scrubbed.text);
+  const topic = topics[0] ?? null;
+
+  const signals = {
+    raw,
+    text: scrubbed.text,
+    norm: t,
+    lang,
+    flags: scrubbed.flags,
+    short,
+    greet: R.greet.test(t) && short,
+    thanks: R.thanks.test(t) && short,
+    bye: R.bye.test(t),
+    yes: R.yes.test(t) && short,
+    no: R.no.test(t) && short,
+    cancel: R.cancel.test(t),
+    change: R.change.test(t),
+    handoff: R.handoff.test(t) || (biz.handoff_topics ?? []).some((k) => t.includes(normalize(k).trim())),
+    asap: R.asap.test(t) || when.asap,
+    anyone: R.anyone.test(t),
+    no_notes: R.noNotes.test(t),
+    offtopic: R.offtopic.test(t),
+    question: asking,
+    booking_kw: bookingKw,
+    order_kw: orderKw,
+    want_kw: wantKw,
+    asks_options: asksOptions,
+    process_question: processQuestion,
+    has_items: hasItems,
+    items,
+    when,
+    party: extractParty(scrubbed.text, { expecting: awaiting === 'party' }),
+    resource: extractResource(scrubbed.text, biz),
+    name: extractName(scrubbed.text, { expecting: awaiting === 'name' }) ?? null,
+    phone: extractPhone(scrubbed.text),
+    email: extractEmail(scrubbed.text),
+    diet,
+    topic,
+    topics,
+    refusal,
+  };
+
+  // Intención principal.
+  let primary = 'info';
+  if (refusal) primary = 'refuse';
+  else if (signals.handoff) primary = 'handoff';
+  else if (signals.cancel && !hasItems) primary = 'cancel';
+  else if (awaiting && (signals.yes || signals.no) && short) primary = signals.yes ? 'yes' : 'no';
+  else if (bookingKw && (caps.has('booking') || !caps.has('order'))) primary = 'booking';
+  else if ((orderKw || (hasItems && (wantKw || !asking))) && caps.has('order') && !processQuestion && !(bookingKw && !hasItems)) primary = 'order';
+  else if (bookingKw) primary = 'booking_unsupported';
+  else if ((orderKw || (hasItems && wantKw)) && !caps.has('order') && biz.booking?.mode !== 'staff') primary = 'order_unsupported';
+  else if (signals.thanks) primary = 'thanks';
+  else if (signals.bye) primary = 'bye';
+  else if (signals.greet) primary = 'greet';
+  else if (signals.offtopic) primary = 'offtopic';
+  else if (hasItems && biz.booking?.mode === 'staff' && (signals.want_kw || !signals.question)) primary = 'booking';
+  else if (signals.yes) primary = 'yes';
+  else if (signals.no) primary = 'no';
+  signals.primary = primary;
+  return signals;
+}
+

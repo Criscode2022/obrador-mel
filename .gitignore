@@ -1,0 +1,17 @@
+# Secretos y configuración local
+.env
+.env.local
+*.pem
+*.key
+
+# Dependencias y compilados
+node_modules/
+web/dist/
+web/.angular/
+
+# Lo que escribe el motor: puede llevar datos de quien prueba la demo
+output/
+
+# Sistema y ruido
+.DS_Store
+*.log

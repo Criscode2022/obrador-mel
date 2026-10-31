@@ -1,0 +1,131 @@
+@if (ui.staffOpen()) {
+  <aside class="panel" aria-label="Panel del local">
+    <header class="top">
+      <div>
+        <p class="kicker"><app-icon name="store" [size]="14" /> Vista del local · demostración</p>
+        <h2>{{ profile().name }}</h2>
+      </div>
+      <button type="button" class="ghost" (click)="ui.staffOpen.set(false)" aria-label="Cerrar el panel del local"><app-icon name="x" [size]="19" /></button>
+    </header>
+    <p class="lead">Así lo vería una persona del negocio. El asistente comprueba y prepara; <strong>solo cuando tú confirmas</strong> se prepara el pedido. Aquí solo ves lo que has probado tú.</p>
+
+    <div class="tabs" role="tablist" aria-label="Secciones del panel">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'open'" [class.on]="tab() === 'open'" (click)="setTab('open')">
+        Por atender @if (openList().length) { <b>{{ openList().length }}</b> }
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'done'" [class.on]="tab() === 'done'" (click)="setTab('done')">Hecho</button>
+    </div>
+
+    @if (error()) { <p class="err" role="alert">{{ error() }}</p> }
+
+    <div class="body">
+      @if (tab() === 'open') {
+        @if (!openList().length) {
+          <div class="empty">
+            <app-icon name="inbox" [size]="30" [stroke]="1.5" />
+            <p><strong>Nada pendiente.</strong></p>
+            <p>Pide algo al asistente (un encargo o una pregunta que no sepa) y aparecerá aquí para que lo atiendas.</p>
+            <button type="button" class="btn primary" (click)="openChat()"><app-icon name="chat" [size]="16" /> Abrir el asistente</button>
+          </div>
+        }
+        @for (r of openList(); track r.id) {
+          <ng-container [ngTemplateOutlet]="card" [ngTemplateOutletContext]="{ $implicit: r }" />
+        }
+      }
+
+      @if (tab() === 'done') {
+        @if (!doneList().length) {
+          <div class="empty"><p>Todavía no has cerrado ninguna solicitud.</p></div>
+        }
+        @for (r of doneList(); track r.id) {
+          <ng-container [ngTemplateOutlet]="card" [ngTemplateOutletContext]="{ $implicit: r }" />
+        }
+      }
+
+    </div>
+
+    @if (toast()) { <p class="toast" [class.bad]="toastBad()" role="status">{{ toastText() }}</p> }
+  </aside>
+}
+
+<ng-template #card let-r>
+  <article class="req" [attr.data-tone]="tone(r)">
+    <header>
+      <span class="ico"><app-icon [name]="icon(r)" [size]="18" /></span>
+      <div class="ttl">
+        <h3>{{ title(r) }}</h3>
+        @if (when(r)) { <p class="when">{{ r.status === 'change_proposed' ? 'Propuesto: ' : '' }}{{ when(r) }}</p> }
+      </div>
+      <span class="pill" [attr.data-tone]="tone(r)">{{ shortStatus(r) }}</span>
+    </header>
+
+    @if (r.customer_text) { <blockquote>“{{ r.customer_text.length > 140 ? r.customer_text.slice(0, 140) + '…' : r.customer_text }}”</blockquote> }
+
+    @if (lines(r).length) {
+      <ul class="lines">
+        @for (l of lines(r); track $index) {
+          <li><b>{{ l.qty }}×</b> <span>{{ l.name }}@if (l.option_label) { <small>{{ l.option_label }}</small> }</span> <em>{{ euro(l.total_cents) }}</em></li>
+        }
+      </ul>
+    }
+    @if (rows(r).length) {
+      <dl>
+        @for (row of rows(r); track row.label) { <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div> }
+      </dl>
+    }
+
+    @if (r.evidence.length || r.citations.length) {
+      <details class="proof">
+        <summary><app-icon name="shield" [size]="14" /> Lo que comprobó el asistente</summary>
+        <ul>
+          @for (e of r.evidence; track $index) { <li><app-icon [name]="e.ok ? 'check' : 'alert'" [size]="13" [stroke]="2" /> {{ e.detail }}</li> }
+          @for (c of r.citations; track $index) { <li class="src"><app-icon name="book" [size]="13" /> {{ c.source }}</li> }
+        </ul>
+      </details>
+    }
+
+    @if (r.status === 'pending' && (r.kind === 'booking' || r.kind === 'order')) {
+      <div class="actions">
+        <button type="button" class="btn primary" [disabled]="acting() === r.id" (click)="act(r, 'accept')"><app-icon name="check" [size]="16" [stroke]="2.2" /> Confirmar</button>
+        <button type="button" class="btn" [class.on]="form(r) === 'change'" (click)="openForm(r, 'change')"><app-icon name="clock" [size]="16" /> Otra hora</button>
+        <button type="button" class="btn" [class.on]="form(r) === 'deny'" (click)="openForm(r, 'deny')"><app-icon name="x" [size]="16" /> Rechazar</button>
+      </div>
+    }
+    @if (r.status === 'change_proposed') {
+      <p class="waiting"><app-icon name="clock" [size]="14" /> Esperando a que el cliente acepte la nueva hora.</p>
+      <div class="actions"><button type="button" class="btn" (click)="openForm(r, 'deny')"><app-icon name="x" [size]="16" /> Rechazar</button></div>
+    }
+    @if (r.status === 'pending' && (r.kind === 'handoff' || r.kind === 'question')) {
+      <div class="reply">
+        <label [for]="'m-' + r.id">Respuesta para el cliente</label>
+        <textarea [id]="'m-' + r.id" rows="3" maxlength="500" [value]="draft(r)" (input)="setDraft(r, $event)" placeholder="Escribe lo que le dirías al cliente"></textarea>
+        <button type="button" class="btn primary" [disabled]="acting() === r.id || !draft(r).trim()" (click)="act(r, 'message')"><app-icon name="send" [size]="16" /> Enviar respuesta</button>
+      </div>
+    }
+    @if (r.kind === 'info' && r.status === 'answered') {
+      <div class="actions"><button type="button" class="btn primary" [disabled]="acting() === r.id" (click)="act(r, 'review')"><app-icon name="check" [size]="16" [stroke]="2.2" /> Marcar como revisada</button></div>
+    }
+
+    @if (form(r) === 'change') {
+      <div class="inline">
+        <p class="lbl">Elige otro día y hora libres</p>
+        <div class="days small">
+          @for (d of days().slice(0, 7); track d) { <button type="button" [class.on]="changeDay()[r.id] === d" (click)="pickDay(r, d)">{{ dayShort(d) }}</button> }
+        </div>
+        <div class="slots">
+          @for (s of changeSlots()[r.id] ?? []; track s.time) {
+            <button type="button" [class.on]="pickedSlot()[r.id] === s.time" (click)="pick(r, s.time)">{{ s.time }}@if (s.resource) { <small> · {{ s.resource.name }}</small> }</button>
+          } @empty { <span class="none">No hay huecos ese día.</span> }
+        </div>
+        <textarea rows="2" maxlength="300" [value]="draft(r)" (input)="setDraft(r, $event)" placeholder="Nota para el cliente (opcional)"></textarea>
+        <button type="button" class="btn primary" [disabled]="acting() === r.id || !pickedSlot()[r.id]" (click)="act(r, 'change')">Proponer esta hora</button>
+      </div>
+    }
+    @if (form(r) === 'deny') {
+      <div class="inline">
+        <textarea rows="2" maxlength="300" [value]="draft(r)" (input)="setDraft(r, $event)" placeholder="Motivo para el cliente (opcional)"></textarea>
+        <button type="button" class="btn danger" [disabled]="acting() === r.id" (click)="act(r, 'deny')">Rechazar y avisar</button>
+      </div>
+    }
+  </article>
+</ng-template>

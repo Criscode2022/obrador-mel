@@ -1,0 +1,7 @@
+{
+  "currency": "EUR",
+  "categories": [{ "id": "platos", "name": "Platos", "aliases": ["plato", "platos"] }],
+  "items": [
+    { "id": "caldo", "category": "platos", "name": "Caldo gallego", "aliases": ["caldo"], "price": 9, "description": "De la casa.", "tags": [], "contains": [], "options": [] }
+  ]
+}

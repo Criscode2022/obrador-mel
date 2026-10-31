@@ -7,6 +7,6 @@
     "node": ">=24"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test \"*.test.mjs\" \"biz/*.test.mjs\""
   }
 }

@@ -1,0 +1,41 @@
+{
+  "slug": "restaurante-prueba",
+  "name": "Restaurante de prueba",
+  "kind": "restaurante",
+  "label": "Restaurante",
+  "tagline": "Solo existe en las pruebas del motor.",
+  "city": "Santiago de Compostela",
+  "address": "Rúa da Proba 1, 15701 Santiago de Compostela",
+  "phone": "981 000 001",
+  "email": "reservas@restaurante.example",
+  "capabilities": ["info", "booking"],
+  "hour_bias": "pm",
+  "hours": {
+    "mon": [],
+    "tue": [["13:00", "16:00"], ["20:00", "23:30"]],
+    "wed": [["13:00", "16:00"], ["20:00", "23:30"]],
+    "thu": [["13:00", "16:00"], ["20:00", "23:30"]],
+    "fri": [["13:00", "16:00"], ["20:00", "23:30"]],
+    "sat": [["13:00", "16:00"], ["20:00", "23:30"]],
+    "sun": [["13:00", "16:00"]]
+  },
+  "closed_dates": ["2026-12-25"],
+  "assistant": {
+    "greeting": { "es": "Hola, soy el asistente del restaurante.", "gl": "Ola, son o asistente do restaurante." },
+    "suggestions": ["Quiero una mesa para dos"],
+    "quick_actions": [{ "label": "Reservar mesa", "text": "Quiero reservar una mesa" }]
+  },
+  "booking": {
+    "mode": "tables",
+    "slot_minutes": 30,
+    "duration_minutes": { "default": 90, "long": 120, "long_from": 6 },
+    "party": { "min": 1, "max": 12, "handoff_over": 8 },
+    "lead_minutes": 90,
+    "horizon_days": 60,
+    "last_seating_before_close_minutes": 60,
+    "tables": [{ "seats": 2, "count": 6 }, { "seats": 4, "count": 8 }, { "seats": 8, "count": 1 }],
+    "load": { "default": 0.35, "overrides": { "sat_dinner": 0.96 } },
+    "need_phone": true,
+    "ask_notes": true
+  }
+}

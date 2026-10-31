@@ -93,6 +93,136 @@ export function backgroundLoad(biz, cfg, ymd, min) {
   return clamp(base + noise, 0, 1);
 }
 
+function leadCutoff(cfg, now) {
+  return now.getTime() + (cfg.lead_minutes ?? 0) * 60000;
+}
+
+// Fuera de la ventana de reserva (pasado, demasiado pronto o demasiado lejos). -> motivo | null
+export function windowProblem(biz, cfg, ymd, now) {
+  const today = todayYmd(now);
+  const delta = daysBetween(today, ymd);
+  if (delta < 0) return 'past';
+  if (delta > (cfg.horizon_days ?? 60)) return 'too_far';
+  if (!dayRanges(biz, ymd).length) return 'closed';
+  return null;
+}
+
+// ---------------------------------------------------------------- mesas (restaurante)
+
+export function tableDuration(cfg, party) {
+  const d = cfg.duration_minutes ?? {};
+  if (typeof d === 'number') return d;
+  return party >= (d.long_from ?? 6) ? (d.long ?? 120) : (d.default ?? 90);
+}
+
+function tableFree(biz, cfg, ymd, start, party, own) {
+  const dur = tableDuration(cfg, party);
+  const sizes = cfg.tables.filter((t) => t.seats >= party).sort((a, b) => a.seats - b.seats);
+  let best = null;
+  let totalFree = 0;
+  for (const t of sizes) {
+    let taken = 0;
+    for (let blk = start; blk < start + dur; blk += 30) {
+      const load = backgroundLoad(biz, cfg, ymd, blk);
+      const f = clamp(load + (hash01(`${biz.slug}|${ymd}|${Math.floor(blk / 30)}|${t.seats}`) - 0.5) * 0.3, 0, 1);
+      taken = Math.max(taken, Math.round(t.count * f));
+    }
+    const mine = own.filter((o) => o.ymd === ymd && o.seats === t.seats && o.start < start + dur && o.end > start).length;
+    const free = t.count - taken - mine;
+    if (free > 0) {
+      totalFree += free;
+      if (!best) best = t.seats;
+    }
+  }
+  return best ? { seats: best, free: totalFree } : null;
+}
+
+// -> { ok, reason?, slots: [{ time, min, seats, free, scarce }] }
+export function tableAvailability(biz, { ymd, party, now = new Date(), own = [] }) {
+  const cfg = biz.booking;
+  if (party < (cfg.party?.min ?? 1) || party > (cfg.party?.max ?? 99)) return { ok: false, reason: 'party', slots: [] };
+  const problem = windowProblem(biz, cfg, ymd, now);
+  if (problem) return { ok: false, reason: problem, slots: [] };
+  const slots = [];
+  const earliest = leadCutoff(cfg, now);
+  const step = cfg.slot_minutes ?? 30;
+  const lastGap = cfg.last_seating_before_close_minutes ?? 60;
+  for (const [a, b] of dayRanges(biz, ymd)) {
+    for (let t = a; t <= b - lastGap; t += step) {
+      if (instant(ymd, t) < earliest) continue;
+      const free = tableFree(biz, cfg, ymd, t, party, own);
+      if (free) slots.push({ time: fmtTime(t), min: t, seats: free.seats, free: free.free, scarce: free.free <= 1 });
+    }
+  }
+  return { ok: slots.length > 0, reason: slots.length ? null : 'full', slots };
+}
+
+// ------------------------------------------------- citas con profesionales (peluquería, fisio)
+
+export function eligibleResources(cfg, serviceIds, resourceId = null) {
+  return cfg.resources.filter((r) => {
+    if (resourceId && r.id !== resourceId) return false;
+    if (r.services === 'all' || r.services == null) return true;
+    return serviceIds.every((s) => r.services.includes(s));
+  });
+}
+
+function resourceRanges(biz, res, ymd) {
+  if ((biz.closed_dates ?? []).includes(ymd)) return [];
+  return (res.hours?.[weekdayKey(ymd)] ?? []).map(([a, b]) => [toMin(a), toMin(b)]);
+}
+
+// Citas «de fondo» de un profesional ese día: intervalos [inicio, fin) en minutos.
+export function seededBusy(biz, cfg, res, ymd) {
+  const ranges = resourceRanges(biz, res, ymd);
+  const busy = [];
+  for (const [a, b] of ranges) {
+    let t = a;
+    while (t < b) {
+      const load = cfg.load?.overrides?.[`${weekdayKey(ymd)}_${dayPart(t)}`] ?? cfg.load?.default ?? 0.4;
+      const p = clamp(load + (hash01(`${biz.slug}|${ymd}|${res.id}|d`) - 0.5) * 0.3, 0.02, 0.95) * 0.46;
+      if (hash01(`${biz.slug}|${ymd}|${res.id}|${t}`) < p) {
+        const durations = [30, 45, 60, 60, 90];
+        const dur = durations[Math.floor(hash01(`${biz.slug}|${ymd}|${res.id}|${t}|len`) * durations.length)];
+        busy.push([t, Math.min(b, t + dur)]);
+        t += dur;
+      } else {
+        t += 15;
+      }
+    }
+  }
+  return busy;
+}
+
+const overlaps = (a0, a1, b0, b1) => a0 < b1 && b0 < a1;
+
+// -> { ok, reason?, slots: [{ time, min, resource: { id, name }, duration }] }
+export function staffAvailability(biz, { ymd, duration, serviceIds, resourceId = null, now = new Date(), own = [] }) {
+  const cfg = biz.booking;
+  const problem = windowProblem(biz, cfg, ymd, now);
+  if (problem) return { ok: false, reason: problem, slots: [] };
+  const resources = eligibleResources(cfg, serviceIds, resourceId);
+  if (!resources.length) return { ok: false, reason: 'no_resource', slots: [] };
+  const earliest = leadCutoff(cfg, now);
+  const step = cfg.slot_minutes ?? 30;
+  const byTime = new Map();
+  for (const res of resources) {
+    const busy = seededBusy(biz, cfg, res, ymd);
+    const mine = own.filter((o) => o.ymd === ymd && o.resource === res.id);
+    for (const [a, b] of resourceRanges(biz, res, ymd)) {
+      for (let t = a; t + duration <= b; t += step) {
+        if (instant(ymd, t) < earliest) continue;
+        if (busy.some(([x, y]) => overlaps(t, t + duration, x, y))) continue;
+        if (mine.some((o) => overlaps(t, t + duration, o.start, o.end))) continue;
+        if (!byTime.has(t)) byTime.set(t, { time: fmtTime(t), min: t, resource: { id: res.id, name: res.name }, duration, others: 0 });
+        else byTime.get(t).others += 1;
+      }
+    }
+  }
+  const slots = [...byTime.values()].sort((x, y) => x.min - y.min);
+  return { ok: slots.length > 0, reason: slots.length ? null : 'full', slots };
+}
+
 // ------------------------------------------------------------------ recogida de pedidos
 
 function pickupLeft(biz, cfg, ymd, min, own) {
@@ -152,6 +282,34 @@ export function agendaOf(biz, { ymd, own = [] }) {
   const ranges = dayRanges(biz, ymd);
   const out = { ymd, open: ranges.length > 0, ranges: ranges.map(([a, b]) => ({ from: fmtTime(a), to: fmtTime(b), from_min: a, to_min: b })) };
   if (!ranges.length) return { ...out, kind: 'closed' };
+  const cfg = biz.booking;
+  if (cfg?.mode === 'tables') {
+    const total = cfg.tables.reduce((n, t) => n + t.count, 0);
+    const rows = [];
+    for (const [a, b] of ranges) {
+      for (let t = a; t < b; t += 30) {
+        let taken = 0;
+        for (const tb of cfg.tables) {
+          const f = clamp(backgroundLoad(biz, cfg, ymd, t) + (hash01(`${biz.slug}|${ymd}|${Math.floor(t / 30)}|${tb.seats}`) - 0.5) * 0.3, 0, 1);
+          taken += Math.round(tb.count * f);
+        }
+        const mine = own.filter((o) => o.ymd === ymd && o.start <= t && o.end > t).length;
+        rows.push({ time: fmtTime(t), min: t, taken: Math.min(total, taken), mine, total });
+      }
+    }
+    return { ...out, kind: 'tables', rows };
+  }
+  if (cfg?.mode === 'staff') {
+    const resources = cfg.resources.map((r) => ({
+      id: r.id,
+      name: r.name,
+      role: r.role ?? '',
+      ranges: resourceRanges(biz, r, ymd).map(([a, b]) => ({ from_min: a, to_min: b })),
+      busy: seededBusy(biz, cfg, r, ymd).map(([a, b]) => ({ from_min: a, to_min: b })),
+      mine: own.filter((o) => o.ymd === ymd && o.resource === r.id).map((o) => ({ from_min: o.start, to_min: o.end })),
+    }));
+    return { ...out, kind: 'staff', resources };
+  }
   if (biz.order) {
     const max = biz.order.max_per_slot ?? 5;
     const rows = [];

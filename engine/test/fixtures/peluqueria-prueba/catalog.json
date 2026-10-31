@@ -1,0 +1,11 @@
+{
+  "currency": "EUR",
+  "categories": [{ "id": "corte", "name": "Corte", "aliases": ["corte", "cortes"] }, { "id": "color", "name": "Color", "aliases": ["color", "tinte"] }],
+  "ambiguous": { "corte": { "aliases": ["corte", "corte de pelo"], "name": "corte", "candidates": ["corte-mujer", "corte-hombre"] } },
+  "items": [
+    { "id": "corte-mujer", "category": "corte", "name": "Corte mujer", "aliases": ["corte mujer", "corte de mujer"], "price": 28, "duration": 45, "description": "Corte y acabado.", "tags": [], "contains": [], "options": [], "popular": true },
+    { "id": "corte-hombre", "category": "corte", "name": "Corte caballero", "aliases": ["corte hombre", "corte de hombre", "corte caballero"], "price": 16, "duration": 30, "description": "Tijera o máquina.", "tags": [], "contains": [], "options": [], "popular": true },
+    { "id": "barba", "category": "corte", "name": "Arreglo de barba", "aliases": ["barba", "arreglo de barba"], "price": 10, "duration": 20, "description": "Con toalla caliente.", "tags": [], "contains": [], "options": [] },
+    { "id": "tinte-raiz", "category": "color", "name": "Tinte de raíz", "aliases": ["tinte de raiz", "tinte raiz", "raiz"], "price": 34, "duration": 75, "description": "Solo la raíz.", "tags": [], "contains": [], "options": [] }
+  ]
+}

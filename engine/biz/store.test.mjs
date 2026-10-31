@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { peluqueria, restaurante } from '../test/fixtures/index.mjs';
 import {
   allSlugs, datasetProblems, getBusiness, listBusinesses, publicProfile, toMin, validSlug, validateBusiness, validateCatalog,
 } from './store.mjs';
@@ -7,6 +8,11 @@ import {
 test('el dataset del obrador es válido', () => {
   assert.deepEqual(datasetProblems(), []);
   assert.deepEqual(allSlugs(), ['pasteleria']);
+});
+
+test('los negocios de prueba también pasan la validación', () => {
+  assert.deepEqual(restaurante().problems, []);
+  assert.deepEqual(peluqueria().problems, []);
 });
 
 test('la lista pública enseña lo justo', () => {

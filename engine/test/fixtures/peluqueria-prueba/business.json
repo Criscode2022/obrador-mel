@@ -1,0 +1,46 @@
+{
+  "slug": "peluqueria-prueba",
+  "name": "Peluquería de prueba",
+  "kind": "peluqueria",
+  "label": "Peluquería",
+  "tagline": "Solo existe en las pruebas del motor.",
+  "city": "Santiago de Compostela",
+  "address": "Rúa da Proba 2, 15701 Santiago de Compostela",
+  "phone": "981 000 002",
+  "email": "citas@peluqueria.example",
+  "capabilities": ["info", "booking"],
+  "hours": {
+    "mon": [],
+    "tue": [["10:00", "20:00"]],
+    "wed": [["10:00", "20:00"]],
+    "thu": [["10:00", "20:00"]],
+    "fri": [["10:00", "20:00"]],
+    "sat": [["09:30", "15:00"]],
+    "sun": []
+  },
+  "assistant": {
+    "greeting": { "es": "Hola, soy el asistente de la peluquería.", "gl": "Ola, son o asistente da perruquería." },
+    "suggestions": ["Quiero una cita"],
+    "quick_actions": [{ "label": "Pedir cita", "text": "Quiero una cita" }]
+  },
+  "booking": {
+    "mode": "staff",
+    "slot_minutes": 30,
+    "party": { "min": 1, "max": 1 },
+    "lead_minutes": 120,
+    "horizon_days": 45,
+    "need_phone": true,
+    "ask_notes": true,
+    "load": { "default": 0.5 },
+    "resources": [
+      {
+        "id": "marta", "name": "Marta", "role": "Corte y color", "services": "all",
+        "hours": { "tue": [["10:00", "20:00"]], "wed": [["10:00", "20:00"]], "thu": [["10:00", "20:00"]], "fri": [["10:00", "20:00"]], "sat": [["09:30", "15:00"]] }
+      },
+      {
+        "id": "iago", "name": "Iago", "role": "Barbería", "services": ["corte-hombre", "barba"],
+        "hours": { "tue": [["10:00", "20:00"]], "wed": [["10:00", "20:00"]], "thu": [["10:00", "20:00"]], "fri": [["10:00", "20:00"]], "sat": [["09:30", "15:00"]] }
+      }
+    ]
+  }
+}

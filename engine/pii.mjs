@@ -1,8 +1,8 @@
 // Datos personales de un mensaje. Determinista: ningún modelo decide qué es sensible.
 //   scrub     tapa lo que nunca se guarda (tarjetas con dígito de control válido y DNI/NIE)
-//   redact    tapa el DNI, el correo y el teléfono, para los resúmenes
+//   redact    además tapa el correo y el teléfono, para los resúmenes
 //   classify  dice qué datos personales trae el mensaje, de más a menos sensible
-const PII_RANK = ['minor', 'health', 'dni', 'phone', 'email'];
+const PII_RANK = ['minor', 'health', 'dni', 'card', 'phone', 'email'];
 
 const CARD_RE = /\b(?:\d[ -]?){13,19}\b/g;
 const DNI_RE = /\b[XYZ]?\d{7,8}[\s-]?[A-HJ-NP-TV-Z]\b/gi;
@@ -53,8 +53,7 @@ export function scrub(text) {
 
 export function redact(text) {
   resetRe();
-  return String(text ?? '')
-    .replace(DNI_RE, '[DNI]')
+  return scrub(text).text
     .replace(EMAIL_RE, '[EMAIL]')
     .replace(PHONE_RE, '[TEL]')
     .replace(PHONE_LABELED_RE, '[TEL]');
@@ -67,6 +66,7 @@ export function classify(text) {
   resetRe();
   const { flags } = scrub(raw);
   if (flags.includes('dni')) pii.push('dni');
+  if (flags.includes('card')) pii.push('card');
   resetRe();
   if (PHONE_RE.test(raw) || PHONE_LABELED_RE.test(raw)) pii.push('phone');
   resetRe();

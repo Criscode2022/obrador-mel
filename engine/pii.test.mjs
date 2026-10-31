@@ -25,10 +25,15 @@ test('redact tapa también el correo y el teléfono', () => {
   assert.equal(redact('escribid a iria@example.com'), 'escribid a [EMAIL]');
 });
 
+test('redact nunca deja pasar una tarjeta: el resumen del expediente sale de aquí', () => {
+  assert.ok(!redact('mi tarjeta es 4111 1111 1111 1111').includes('4111'));
+});
+
 test('classify ordena de más a menos sensible', () => {
   assert.equal(classify('quiero una tarta').pii_level, 'none');
   assert.equal(classify('teléfono 655444333').pii_level, 'phone');
   assert.equal(classify('mi dni es 12345678Z y mi móvil 655444333').pii_level, 'dni');
+  assert.equal(classify('mi tarjeta es 4111 1111 1111 1111').pii_level, 'card');
   assert.equal(classify('tengo una enfermedad y mi correo es a@b.es').pii_level, 'health');
   assert.equal(classify('es para mi hija de 7 años').pii_level, 'minor');
 });

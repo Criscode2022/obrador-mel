@@ -19,6 +19,7 @@ process.env.OUTPUT_DIR = OUT;
 
 const slug = 'pasteleria';
 const NOW = new Date('2026-10-15T08:00:00Z'); // jueves, 10:00 en Madrid
+const CARD = '4111 1111 1111 1111';
 const newSession = () => randomBytes(16).toString('hex');
 const say = (session, caseId, text) => chatTurn({ slug, session, caseId, text, now: NOW });
 const press = (session, caseId, action, label) => chatTurn({ slug, session, caseId, action, label, now: NOW });
@@ -241,6 +242,33 @@ test('una acción desconocida o un mensaje vacío se rechazan', async () => {
 });
 
 // ----------------------------------------------------------------- datos que no se guardan
+
+async function everything(caseId) {
+  const q = async (sql) => JSON.stringify(await rows(sql, caseId));
+  return (await Promise.all([
+    q('SELECT summary FROM cases WHERE id = $1'),
+    q('SELECT content, meta FROM messages WHERE case_id = $1'),
+    q('SELECT data, dialog FROM biz_requests WHERE case_id = $1'),
+    q('SELECT payload FROM events WHERE case_id = $1'),
+    q('SELECT draft FROM proposals WHERE case_id = $1'),
+  ])).join('\n');
+}
+
+test('una tarjeta en el primer mensaje no llega a la base de datos', async () => {
+  const out = await say(newSession(), undefined, `hola, mi tarjeta es ${CARD}`);
+  assert.equal(out.state, 'refused');
+  const stored = await everything(out.case_id);
+  assert.ok(!stored.includes('4111'), stored);
+  assert.match(stored, /\[TARJETA\]/);
+});
+
+test('un DNI, con guion o sin él, no llega a la base de datos', async () => {
+  for (const dni of ['12345678Z', '12345678-Z', 'X1234567L']) {
+    const out = await say(newSession(), undefined, `hola, mi dni es ${dni}, ¿abrís mañana?`);
+    const stored = await everything(out.case_id);
+    assert.ok(!stored.includes(dni.slice(1, 8)), `${dni}: ${stored}`);
+  }
+});
 
 test('el nivel de datos personales del expediente sale del mensaje original', async () => {
   const out = await say(newSession(), undefined, 'mi dni es 12345678Z, ¿abrís mañana?');

@@ -1,0 +1,91 @@
+@if (ui.chatOpen()) {
+  <section class="chat" role="dialog" aria-modal="false" [attr.aria-label]="'Asistente de ' + profile().name">
+    <header class="head">
+      <span class="avatar" aria-hidden="true">{{ initial() }}</span>
+      <div class="title">
+        <strong>Asistente de {{ profile().name }}</strong>
+        <span>Soy un asistente; una persona confirmará.</span>
+      </div>
+      <button type="button" class="ghost" (click)="reset()" title="Empezar otra conversación" aria-label="Empezar otra conversación"><app-icon name="refresh" [size]="18" /></button>
+      <button type="button" class="ghost" (click)="close()" title="Cerrar" aria-label="Cerrar el asistente"><app-icon name="x" [size]="18" /></button>
+    </header>
+
+    @if (status(); as st) {
+      <div class="status" [attr.data-tone]="st.tone" role="status">
+        <span class="dot" aria-hidden="true"></span>{{ st.label }}
+      </div>
+    }
+
+    <div class="log" #log role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación">
+      @if (empty()) {
+        <div class="msg" data-role="assistant">
+          <span class="from">Asistente</span>
+          <div class="bubble">{{ profile().assistant.greeting.es }}</div>
+          <div class="chips" role="group" aria-label="Para empezar">
+            @for (s of suggestions(); track s) {
+              <button type="button" class="chip" (click)="send(s)">{{ s }}</button>
+            }
+          </div>
+          <div class="chips quick" role="group" aria-label="Accesos rápidos">
+            @for (q of quick(); track q.label) {
+              <button type="button" class="chip solid" (click)="send(q.text)">{{ q.label }}</button>
+            }
+          </div>
+        </div>
+      }
+
+      @for (m of messages(); track m.id; let last = $last) {
+        <div class="msg" [attr.data-role]="m.role">
+          @if (m.role !== 'user') { <span class="from">{{ fromLabel(m) }}</span> }
+          <div class="bubble">{{ m.text }}</div>
+          @if (last && !busy() && m.role !== 'user' && m.meta?.chips?.length) {
+            <div class="chips" role="group" aria-label="Respuestas rápidas">
+              @for (c of m.meta?.chips ?? []; track $index) {
+                <button type="button" class="chip" (click)="chip(c)">{{ c.label }}</button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (busy()) {
+        <div class="msg" data-role="assistant" aria-label="El asistente está escribiendo">
+          <div class="bubble typing"><i></i><i></i><i></i></div>
+          @if (slow()) { <span class="slow">Un momento, lo estoy comprobando…</span> }
+        </div>
+      }
+
+      @if (error()) {
+        <div class="error" role="alert">
+          <app-icon name="alert" [size]="16" />
+          <span>{{ error() }}</span>
+          <button type="button" (click)="retry()">Reintentar</button>
+        </div>
+      }
+    </div>
+
+    <form class="compose" (submit)="submit($event)">
+      <input
+        #field
+        type="text"
+        name="mensaje"
+        autocomplete="off"
+        enterkeyhint="send"
+        maxlength="500"
+        [value]="draft()"
+        (input)="onInput($event)"
+        [disabled]="busy()"
+        [attr.placeholder]="empty() ? 'Escribe lo que necesites' : 'Escribe tu respuesta'"
+        aria-label="Mensaje para el asistente"
+      />
+      <button type="submit" class="send" [disabled]="busy()" aria-label="Enviar"><app-icon name="send" [size]="18" [stroke]="2.1" /></button>
+    </form>
+    <p class="fine"><app-icon name="lock" [size]="12" /> Demostración con un negocio ficticio. No escribas datos reales: ni tarjeta, ni DNI, ni salud.</p>
+  </section>
+} @else {
+  <button type="button" class="launcher" (click)="ui.openChat()" [attr.aria-label]="'Abrir el asistente de ' + profile().name">
+    <app-icon name="chat" [size]="22" />
+    <span>Habla con el asistente</span>
+    @if (unread()) { <b class="badge" aria-label="mensajes nuevos">{{ unread() }}</b> }
+  </button>
+}

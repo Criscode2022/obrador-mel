@@ -106,7 +106,7 @@ export function slotsPreview({ slug, ymd, party = 2, services = [], resource = n
 
 function whenText(request, lang) {
   const d = request.data;
-  return `${dayLong(d.ymd, lang)} a las ${d.time}`;
+  return L(lang, `${dayLong(d.ymd, 'es')} a las ${d.time}`, `${dayLong(d.ymd, 'gl')} ás ${d.time}`);
 }
 
 function confirmedText(business, request, lang, note, now = new Date()) {
@@ -294,7 +294,7 @@ export async function staffAct({
       `UPDATE biz_requests SET status = 'change_proposed', data = $2::jsonb, updated_at = now() WHERE id = $1`,
       [request.id, JSON.stringify({ ...request.data, proposed })],
     );
-    const when = `${dayLong(ymd, lang)} a las ${time}`;
+    const when = L(lang, `${dayRel(ymd, 'es', now)} a las ${time}`, `${dayRel(ymd, 'gl', now)} ás ${time}`);
     const text = request.kind === 'order'
       ? L(lang, `El local no llega a la hora pedida. Propone dejártelo listo ${when}. ¿Te viene bien?${note ? ` ${note}` : ''}`, `O local non chega á hora pedida. Propón deixartelo listo ${when}. ¿Vénche ben?${note ? ` ${note}` : ''}`)
       : L(lang, `El local te propone otra hora: ${when}. ¿Te viene bien?${note ? ` ${note}` : ''}`, `O local próponche outra hora: ${when}. ¿Vénche ben?${note ? ` ${note}` : ''}`);

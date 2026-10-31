@@ -118,6 +118,7 @@ test('proponer otra hora y aceptarla mueve el pedido y su tarjeta', async () => 
   const other = slotsPreview({ slug, ymd: '2026-10-17', now: NOW }).slots.find((s) => s.time !== '11:00');
   const out = await act(session, sent.request.id, 'change', { ymd: '2026-10-17', time: other.time });
   assert.equal(out.status, 'change_proposed');
+  assert.ok(out.message.includes(`el sábado 17 de octubre a las ${other.time}`), out.message);
   const waiting = await conversation({ slug, session, caseId: sent.case_id });
   assert.equal(waiting.request.status, 'change_proposed');
   assert.equal(waiting.messages.at(-1).meta.chips[0].action.type, 'change_accept');
@@ -134,6 +135,17 @@ test('proponer otra hora y aceptarla mueve el pedido y su tarjeta', async () => 
   const md = fs.readFileSync(path.join(OUT, `${sent.case_id}.md`), 'utf8');
   assert.match(md, /- solicitud: order · confirmed/);
   assert.ok(md.includes(`- recogida: 2026-10-17 ${other.time}`), md);
+});
+
+test('la hora propuesta se le dice a cada cliente en su idioma', async () => {
+  const session = newSession();
+  let r = await say(session, undefined, 'Ola, quero dúas palmeras para o sábado ás 11 a nome de Iria, teléfono 655444333');
+  r = await say(session, r.case_id, 'non');
+  r = await press(session, r.case_id, { type: 'confirm' }, 'Enviar pedido');
+  const other = slotsPreview({ slug, ymd: '2026-10-17', now: NOW }).slots.find((s) => s.time !== '11:00');
+  const out = await act(session, r.request.id, 'change', { ymd: '2026-10-17', time: other.time });
+  assert.ok(out.message.startsWith('O local non chega'), out.message);
+  assert.ok(out.message.includes(`o sábado 17 de outubro ás ${other.time}`), out.message);
 });
 
 test('si la hora propuesta no le viene bien, la solicitud vuelve al local', async () => {

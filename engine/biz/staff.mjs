@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createCalendarEvent } from '../calendar.mjs';
 import { nid, outputDir, pool } from '../db.mjs';
 import {
-  isoAt, pickupAvailability, staffAvailability, tableAvailability, todayYmd,
+  agendaOf, isoAt, pickupAvailability, staffAvailability, tableAvailability, todayYmd,
 } from './avail.mjs';
 import { dayLong, dayRel, money } from './format.mjs';
 import { HttpError, checkSession, loadCase, ownBlocks, publicRequest } from './flow.mjs';
@@ -76,6 +76,14 @@ export async function staffList({ slug, session }) {
       done: requests.length - open.length,
     },
   };
+}
+
+export async function agenda({ slug, session, ymd }) {
+  const found = getBusiness(slug);
+  if (!found) throw fail(404, 'negocio desconocido');
+  checkSession(session);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(String(ymd)) ? ymd : todayYmd();
+  return agendaOf(found.business, { ymd: day, own: await ownBlocks(slug, session) });
 }
 
 // Huecos libres sin sesión: solo la ocupación de fondo. Sirven a la web y a las pruebas.

@@ -140,7 +140,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 
 .log {
   flex: 1;
-  overflow-y: auto;
+  // Todo se parte en filas: la conversación solo se desplaza en vertical.
+  overflow: hidden auto;
   padding: 16px 14px 8px;
   display: flex;
   flex-direction: column;
@@ -169,17 +170,22 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 @keyframes blink { 30% { opacity: 1; transform: translateY(-2px); } }
 .slow { font-size: 12.5px; color: var(--c-muted); padding-left: 4px; }
 
-.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
-  padding: 8px 13px;
+  display: block;
+  padding: 8px 14px;
   border: 1.5px solid var(--c-accent);
-  border-radius: 999px;
+  // La mitad de una fila: con una línea es una píldora y con varias, una sola pieza.
+  border-radius: 18px;
   background: transparent;
   color: var(--c-accent);
   font-size: 14px;
   font-weight: 600;
   text-align: left;
   line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
   transition: background 0.15s, color 0.15s;
   &:hover { background: var(--c-accent); color: var(--c-accent-ink); }
   &.solid { background: var(--c-accent); color: var(--c-accent-ink); }
@@ -196,6 +202,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   summary:hover { color: var(--c-ink); }
   ul { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 5px; }
   li { display: flex; gap: 7px; align-items: flex-start; }
+  li span { min-width: 0; overflow-wrap: anywhere; }
   li app-icon { margin-top: 2px; color: var(--c-ok); }
   li.bad app-icon { color: var(--c-bad); }
   li.src app-icon { color: var(--c-muted); }
@@ -210,20 +217,20 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   font-size: 14px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 }
-.card-title { font-family: var(--c-display); font-weight: 700; font-size: 14.5px; margin: 0 0 8px; }
+.card-title { font-family: var(--c-display); font-weight: 700; font-size: 14.5px; margin: 0 0 8px; overflow-wrap: anywhere; }
 .card dl { margin: 0; display: grid; gap: 5px; }
 .card dl div { display: flex; justify-content: space-between; gap: 14px; }
-.card dt { color: var(--c-muted); }
-.card dd { margin: 0; font-weight: 600; text-align: right; }
+.card dt { flex: none; color: var(--c-muted); }
+.card dd { min-width: 0; margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 .hours .today dt, .hours .today dd { color: var(--c-accent); font-weight: 700; }
 .menu ul, .lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
 .menu li, .lines li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.menu .n, .lines .n { flex: 1; min-width: 0; display: grid; }
+.menu .n, .lines .n { flex: 1; min-width: 0; display: grid; overflow-wrap: anywhere; }
 .menu small, .lines small { color: var(--c-muted); font-size: 12px; }
 .p { font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; }
 .more { margin-top: 9px; padding: 0; border: 0; background: none; color: var(--c-accent); font-weight: 650; font-size: 13.5px; }
 
-.detail .card-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+.detail .card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; align-items: baseline; margin-bottom: 8px; }
 .detail .card-head .card-title { margin: 0; }
 .state {
   font-size: 11.5px;

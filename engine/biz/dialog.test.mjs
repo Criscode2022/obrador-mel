@@ -238,6 +238,13 @@ test('reservar en un negocio que no reserva lo dice sin inventar', async () => {
   assert.match(texts(out), /prefiero no inventarlo|no gestiono reservas/);
 });
 
+test('un saludo con pregunta contesta la pregunta', async () => {
+  const [es, gl] = await talk(['Hola, ¿a qué hora abrís?', 'Ola, cando abrides?']);
+  assert.match(texts(es), /abrimos/);
+  assert.match(texts(gl), /abrimos/);
+  assert.equal(gl.state.lang, 'gl');
+});
+
 // ----------------------------------------------- reservas, con los negocios de prueba
 
 const rest = restaurante();

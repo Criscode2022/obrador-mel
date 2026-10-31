@@ -24,7 +24,7 @@ export function detectLang(text, prev = 'es') {
 }
 
 const R = {
-  greet: /^(?:ol[aá]|hola|ola|buenas?|buenos dias|bos dias|boas|buenas tardes|boas tardes|buenas noches|boas noites|hey|ey|saludos|que tal|como estas|como va)\b/,
+  greet: /^(?:ol[aá]|hola|ola|buenos dias|bos dias|buenas tardes|boas tardes|buenas noches|boas noites|buenas?|boas|hey|ey|saludos|que tal|como estas|como va)\b/,
   thanks: /\b(?:obrigad[oa]|gracias|muchas gracias|mil gracias|grazas|moitas grazas|te lo agradezco|vale gracias|genial gracias|perfecto gracias)\b/,
   bye: /^(?:adeus|adios|hasta luego|hasta pronto|chao|chau|nos vemos|ata logo|ata pronto|vale adios|nada mas|eso es todo|ya esta|ya esta todo)\b/,
   yes: /^(?:si|sii|vale|ok|okey|okay|de acuerdo|perfecto|claro|adelante|confirmo|confirmado|correcto|exacto|eso es|dale|venga|por supuesto|sip|afirmativo|enviar|enviarlo|envialo|mandalo|hazlo|apuntalo|ben|certo|de acordo|si por favor|si gracias|si, por favor|genial|estupendo|lo quiero|me va bien|me viene bien|me cuadra|esa|ese)\b/,
@@ -227,6 +227,13 @@ export function hasExtraQuestion(norm, raw = '') {
 
 const clean = (s) => normalize(s).replace(/[^a-z0-9ñ ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
+// Solo saluda quien no dice nada más: «hola, ¿a qué hora abrís?» es una pregunta.
+function onlyGreets(t) {
+  let rest = t;
+  while (R.greet.test(rest)) rest = rest.replace(R.greet, '').trim();
+  return rest !== t && !R.question.test(rest) && rest.split(' ').filter(Boolean).length <= 1;
+}
+
 // -> señales del mensaje. `state` aporta lo que se estaba preguntando (`awaiting`).
 export function analyze(text, { biz, catalog, state = {}, now = new Date() }) {
   const raw = String(text ?? '');
@@ -271,7 +278,7 @@ export function analyze(text, { biz, catalog, state = {}, now = new Date() }) {
     lang,
     flags: scrubbed.flags,
     short,
-    greet: R.greet.test(t) && short,
+    greet: onlyGreets(t),
     thanks: R.thanks.test(t) && short,
     bye: R.bye.test(t),
     yes: R.yes.test(t) && short,

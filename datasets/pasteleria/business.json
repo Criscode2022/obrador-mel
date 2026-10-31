@@ -1,0 +1,64 @@
+{
+  "slug": "pasteleria",
+  "name": "Obrador Mel",
+  "kind": "pasteleria",
+  "label": "Pastelería",
+  "tagline": "Tartas por encargo y pastelería de obrador, con mantequilla y sin atajos.",
+  "city": "Santiago de Compostela",
+  "address": "Rúa do Franco 27, 15705 Santiago de Compostela",
+  "phone": "981 000 404",
+  "email": "encargos@obradormel.example",
+  "capabilities": ["info", "order"],
+  "hour_bias": "am",
+  "hours": {
+    "mon": [],
+    "tue": [["09:00", "14:00"], ["16:30", "20:00"]],
+    "wed": [["09:00", "14:00"], ["16:30", "20:00"]],
+    "thu": [["09:00", "14:00"], ["16:30", "20:00"]],
+    "fri": [["09:00", "14:00"], ["16:30", "20:00"]],
+    "sat": [["09:00", "14:00"], ["16:30", "20:00"]],
+    "sun": [["09:30", "14:00"]]
+  },
+  "closed_dates": ["2026-12-25", "2027-01-01", "2027-01-06"],
+  "assistant": {
+    "tone": "dulce pero claro, con ganas de ayudar",
+    "greeting": {
+      "es": "Hola, soy el asistente de Obrador Mel. Te ayudo a elegir tarta, comprobar plazos y alérgenos, y dejo tu encargo preparado para que lo confirme una persona.",
+      "gl": "Ola, son o asistente de Obrador Mel. Axúdoche a elixir tarta, comprobar prazos e alérxenos, e deixo o teu encargo preparado para que o confirme unha persoa."
+    },
+    "suggestions": [
+      "Quiero una tarta de queso para 12 personas para el sábado",
+      "¿Hacéis tartas sin gluten?",
+      "¿Con cuánta antelación hay que encargar una tarta personalizada?",
+      "Ponme una caja de 6 macarons para recoger mañana"
+    ],
+    "quick_actions": [
+      { "label": "Encargar una tarta", "text": "Quiero encargar una tarta" },
+      { "label": "Plazos de encargo", "text": "¿Con cuánta antelación hay que encargar?" },
+      { "label": "Sin gluten", "text": "¿Qué tenéis sin gluten?" }
+    ]
+  },
+  "order": {
+    "prep_minutes": 15,
+    "slot_minutes": 30,
+    "max_per_slot": 6,
+    "horizon_days": 30,
+    "need_phone": true,
+    "ask_notes": true,
+    "max_items": 30,
+    "items_prompt": {
+      "es": "¿Qué te preparo? Escríbelo como quieras («una tarta de queso para 12 y dos palmeras») o elige.",
+      "gl": "¿Que che preparo? Escríbeo como queiras («unha tarta de queixo para 12 e dúas palmeras») ou elixe."
+    },
+    "notes_prompt": {
+      "es": "¿Quieres una dedicatoria o alguna indicación (alergias, velas, caja)? Si no, dime «no».",
+      "gl": "¿Queres unha dedicatoria ou algunha indicación (alerxias, velas, caixa)? Se non, dime «non»."
+    },
+    "pay": {
+      "es": "Se paga en el obrador al recoger. En tartas personalizadas, el obrador puede pedir una señal que te comunica una persona.",
+      "gl": "Págase no obradoiro ao recoller. Nas tartas personalizadas, o obradoiro pode pedir un sinal que che comunica unha persoa."
+    },
+    "load": { "default": 0.2, "overrides": { "sat_lunch": 0.65, "fri_dinner": 0.55, "sun_lunch": 0.7 } }
+  },
+  "handoff_topics": ["boda", "bautizo", "comunion", "catering", "evento", "factura", "queja", "reclamacion", "devolver", "devolucion", "perdi ", "olvide", "empresa"]
+}

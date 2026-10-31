@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: obrador
+          POSTGRES_PASSWORD: obrador
+          POSTGRES_DB: obrador
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U obrador"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: engine/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Create the tables
+        run: npm run schema
+      - name: Integration tests against Postgres
+        run: npm run test:integration
+      - name: Whole conversations, without the model or Qdrant
+        env:
+          EVAL_NO_MODEL: "1"
+          OLLAMA_BASE_URL: http://127.0.0.1:9
+          QDRANT_URL: http://127.0.0.1:9
+        run: |
+          node server.mjs &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8790/health && break; sleep 1; done
+          node ../evals/run.mjs
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Production server tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: No inline scripts, which the Content-Security-Policy would block
+        run: "! grep -q '<script>' dist/obrador-mel-web/browser/index.html"

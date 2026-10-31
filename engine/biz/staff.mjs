@@ -299,6 +299,26 @@ export async function staffAct({
     return { ok: true, status: 'change_proposed', approval_id: approvalId, message: text };
   }
 
+  if (action === 'message') {
+    if (!note) throw fail(400, 'escribe el mensaje');
+    await addMessage(kase.id, 'staff', note, null);
+    if (['handoff', 'question'].includes(request.kind) && request.status === 'pending') {
+      const approvalId = await approvalRow(kase, request, 'answer', note);
+      await pool.query(`UPDATE biz_requests SET status = 'answered', updated_at = now() WHERE id = $1`, [request.id]);
+      await emit(kase, { ...request, status: 'answered' }, business, approvalId);
+      return { ok: true, status: 'answered', approval_id: approvalId };
+    }
+    await addEvent(kase.id, 'staff.message', { request_id: request.id });
+    return { ok: true, status: request.status };
+  }
+
+  if (action === 'review') {
+    if (!(request.kind === 'info' && request.status === 'answered')) throw fail(409, 'Esta consulta ya está revisada.');
+    const approvalId = await approvalRow(kase, request, 'review', note);
+    await pool.query(`UPDATE biz_requests SET status = 'reviewed', updated_at = now() WHERE id = $1`, [request.id]);
+    await emit(kase, { ...request, status: 'reviewed' }, business, approvalId);
+    return { ok: true, status: 'reviewed', approval_id: approvalId };
+  }
   throw fail(400, 'acción desconocida');
 }
 

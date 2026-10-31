@@ -13,6 +13,9 @@
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'open'" [class.on]="tab() === 'open'" (click)="setTab('open')">
         Por atender @if (openList().length) { <b>{{ openList().length }}</b> }
       </button>
+      @if (profile().booking || profile().order) {
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'agenda'" [class.on]="tab() === 'agenda'" (click)="setTab('agenda')">Agenda</button>
+      }
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'done'" [class.on]="tab() === 'done'" (click)="setTab('done')">Hecho</button>
     </div>
 
@@ -42,6 +45,57 @@
         }
       }
 
+      @if (tab() === 'agenda') {
+        <div class="days" role="group" aria-label="Día de la agenda">
+          @for (d of days(); track d) {
+            <button type="button" [class.on]="agendaDay() === d" (click)="loadAgenda(d)">{{ dayShort(d) }}</button>
+          }
+        </div>
+        @if (agendaError()) { <p class="err">{{ agendaError() }}</p> }
+        @if (agenda(); as a) {
+          <h3 class="agenda-title">{{ dayLabel(agendaDay()) }}</h3>
+          @if (!a.open) {
+            <div class="empty"><p>Cerrado este día.</p></div>
+          } @else {
+            <p class="legend"><span class="sw bg"></span> Otros clientes <span class="sw mine"></span> Tus pruebas</p>
+            @if (a.kind === 'tables' || a.kind === 'pickup') {
+              <ul class="bars">
+                @for (row of a.rows ?? []; track row.min) {
+                  <li>
+                    <span class="t">{{ row.time }}</span>
+                    <span class="track" role="img" [attr.aria-label]="row.taken + row.mine + ' de ' + row.total + ' ocupados'">
+                      <span class="fill" [style.width.%]="pct(row.taken, row.total)"></span>
+                      @if (row.mine) { <span class="mine" [style.left.%]="pct(row.taken, row.total)" [style.width.%]="pct(row.mine, row.total)"></span> }
+                    </span>
+                    <span class="c">{{ row.taken + row.mine }}/{{ row.total }}</span>
+                  </li>
+                }
+              </ul>
+              <p class="note">{{ a.kind === 'tables' ? 'Mesas ocupadas por franja de media hora.' : 'Pedidos por hueco de recogida.' }}</p>
+            }
+            @if (a.kind === 'staff') {
+              <div class="timeline" [style.height.px]="total() + 34">
+                <div class="gutter" [style.height.px]="total()">
+                  @for (m of hourMarks(); track m) { <span [style.top.px]="top(m)">{{ minToTime(m) }}</span> }
+                </div>
+                <div class="cols">
+                  @for (res of a.resources ?? []; track res.id) {
+                    <div class="col">
+                      <p class="who"><strong>{{ res.name }}</strong><small>{{ res.role }}</small></p>
+                      <div class="lane" [style.height.px]="total()">
+                        @for (m of hourMarks(); track m) { <i class="grid" [style.top.px]="top(m)"></i> }
+                        @for (rg of res.ranges; track rg.from_min) { <i class="work" [style.top.px]="top(rg.from_min)" [style.height.px]="height(rg.from_min, rg.to_min)"></i> }
+                        @for (b of res.busy; track b.from_min) { <i class="busy" [style.top.px]="top(b.from_min)" [style.height.px]="height(b.from_min, b.to_min)"></i> }
+                        @for (b of res.mine; track b.from_min) { <i class="mine" [style.top.px]="top(b.from_min)" [style.height.px]="height(b.from_min, b.to_min)">{{ minToTime(b.from_min) }}</i> }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        }
+      }
     </div>
 
     @if (toast()) { <p class="toast" [class.bad]="toastBad()" role="status">{{ toastText() }}</p> }

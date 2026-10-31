@@ -31,7 +31,7 @@ const STOP = new Set(('de la el en y a los se del las un por con no una su para 
 const SYNONYMS = {
   mascota: ['perro'], gato: ['perro', 'mascota'], animal: ['perro'], nino: ['trona', 'infantil'], bebe: ['trona'], pequeno: ['trona'],
   pagar: ['pago', 'tarjeta', 'bizum'], efectivo: ['pago'], movil: ['bizum', 'pago'], contactless: ['pago'],
-  coche: ['aparcamiento'], aparcar: ['aparcamiento'], parking: ['aparcamiento'], estacionar: ['aparcamiento'], bus: ['autobus'],
+  coche: ['aparcamiento', 'transporte'], aparcar: ['aparcamiento'], parking: ['aparcamiento'], estacionar: ['aparcamiento'], bus: ['autobus'],
   enchufe: ['wifi'], ordenador: ['portatil', 'trabajar'], portatil: ['trabajar', 'wifi'], internet: ['wifi'],
   cumple: ['cumpleanos', 'celebracion'], cumpleanos: ['celebracion'], celebrar: ['celebracion'], fiesta: ['celebracion', 'evento'],
   regalo: ['tarjeta', 'regalo'], bono: ['bono'], empresa: ['catering', 'factura'], oficina: ['catering'],

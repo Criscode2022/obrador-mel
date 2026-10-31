@@ -60,6 +60,7 @@ test('la búsqueda por palabras encuentra la sección correcta', () => {
 
 test('los sinónimos acercan las palabras del cliente a las del negocio', () => {
   assert.equal(top('¿tengo sitio para aparcar el coche?'), 'Aparcamiento');
+  assert.ok(ranked('¿puedo llevar una tarta en el coche una hora?').slice(0, 4).includes('Transporte'));
 });
 
 test('cifras: lo que no está en el contexto es invención', () => {

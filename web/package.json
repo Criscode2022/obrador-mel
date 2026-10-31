@@ -7,7 +7,9 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --host 127.0.0.1 --port 4210",
-    "build": "ng build"
+    "build": "ng build",
+    "serve": "node serve.mjs",
+    "test": "node --test --test-concurrency=1 serve.test.mjs"
   },
   "dependencies": {
     "@angular/common": "^22.2.0",

@@ -1,0 +1,28 @@
+@if (profile(); as p) {
+  <biz-frame [profile]="p">
+    <header class="head">
+      <a class="logo" href="#top" aria-label="Obrador Mel, inicio">Obrador <span>Mel</span></a>
+      <nav aria-label="Secciones"><a href="#tartas">Tartas</a><a href="#plazos">Plazos</a><a href="#tienda">Del día</a><a href="#visita">Obrador</a></nav>
+      <button type="button" class="cta" (click)="start('order', 'Quiero encargar una tarta')"><app-icon name="cake" [size]="17" /> Encargar</button>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="copy">
+          <p class="eyebrow">Santiago de Compostela · mantequilla de Galicia</p>
+          <h1>Tartas para celebrar lo que importa.</h1>
+          <p class="lead">Elige tarta y raciones, el asistente calcula el precio y comprueba el plazo y el hueco de recogida. Una persona del obrador lo confirma antes de ponerse a hornear.</p>
+          <div class="actions">
+            <button type="button" class="btn solid" (click)="start('order', 'Quiero encargar una tarta')">Encargar una tarta</button>
+            <a class="btn" href="#tartas">Ver las tartas</a>
+          </div>
+        </div>
+        <div class="art"><biz-art kind="cake" /></div>
+      </section>
+    </main>
+  </biz-frame>
+} @else if (failed()) {
+  <div class="state"><p>No se ha podido cargar la demo.</p><button type="button" (click)="load()">Reintentar</button></div>
+} @else {
+  <div class="state" aria-busy="true"><p>Cargando Obrador Mel…</p></div>
+}

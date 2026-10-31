@@ -25,6 +25,7 @@ test('hora ambigua: «a las 9» depende del horario del negocio', () => {
   assert.equal(parseWhenBiz('mañana a las 2', { biz: rest.business, now: NOW }).time, '14:00');
   assert.equal(parseWhenBiz('a las nueve y media', { biz: mel.business, now: NOW }).time, '09:30');
   assert.equal(parseWhenBiz('a las 5', { biz: mel.business, now: NOW }).time, '17:00'); // a las 5 de la mañana no abre
+  assert.equal(parseWhenBiz('a las 3', { biz: mel.business, now: NOW }).time, '15:00'); // nadie encarga de madrugada
 });
 
 test('la pista de la frase gana al horario', () => {

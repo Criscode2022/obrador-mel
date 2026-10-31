@@ -72,8 +72,7 @@ export function to24(hour, hint, ranges, bias = null) {
   if (fits(am) && fits(pm)) return bias === 'pm' || hour <= 7 ? pm : am;
   if (fits(am)) return am;
   if (fits(pm)) return pm;
-  // Fuera de horario con cualquier lectura: la que más se parece a lo habitual del negocio.
-  if (bias === 'am') return am;
+  // Fuera de horario con cualquier lectura: nadie encarga a las 3 de la madrugada.
   return hour <= 7 ? pm : am;
 }
 

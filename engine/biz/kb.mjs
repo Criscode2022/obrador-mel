@@ -311,7 +311,7 @@ const cleanAnswer = (text) => String(text)
 // Primeras frases del mejor trozo, como respuesta de reserva.
 function excerpt(text, max = 2) {
   const sentences = String(text).replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+/g) ?? [text];
-  return sentences.slice(0, max).join(' ').trim();
+  return sentences.slice(0, max).map((s) => s.trim()).join(' ');
 }
 
 // -> { text, no_data, fallback, model, tokens_in, tokens_out, ms, reason, unsupported }

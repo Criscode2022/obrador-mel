@@ -93,7 +93,7 @@ test('respuesta: la del modelo, si sus cifras están en el contexto', async () =
 test('respuesta: si el modelo inventa una cifra se usa el texto de la fuente', async () => {
   const out = await answer(ask('Las clásicas, con 72 horas de antelación.'));
   assert.equal(out.fallback, true);
-  assert.match(out.text, /48 horas/);
+  assert.equal(out.text, 'Las tartas clásicas se encargan con 48 horas de antelación. La de Santiago, con 24.');
   assert.deepEqual(out.unsupported, ['72 hora']);
 });
 

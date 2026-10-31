@@ -86,7 +86,7 @@ export function extractName(text, { expecting = false } = {}) {
 }
 
 export function extractPhone(text) {
-  const m = String(text ?? '').replace(/(\d)[\s.-](?=\d)/g, '$1').match(/(?:\+34|0034)?\b([6-9]\d{8})\b/);
+  const m = String(text ?? '').replace(/(\d)[\s.-](?=\d)/g, '$1').match(/(?:\+34|0034|\b)([6-9]\d{8})\b/);
   return m ? m[1] : null;
 }
 

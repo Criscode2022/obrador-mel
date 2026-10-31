@@ -98,6 +98,10 @@ test('datos sueltos: nombre, teléfono, correo y comensales', () => {
   assert.equal(extractName('Iria', { expecting: true }), 'Iria');
   assert.equal(extractName('hola', { expecting: true }), null);
   assert.equal(extractPhone('llámame al 655 444 333'), '655444333');
+  assert.equal(extractPhone('+34 655444333'), '655444333');
+  assert.equal(extractPhone('+34655444333'), '655444333');
+  assert.equal(extractPhone('0034 655 444 333'), '655444333');
+  assert.equal(extractPhone('34655444333'), null);
   assert.equal(extractPhone('tengo 12 años'), null);
   assert.equal(extractEmail('mi correo es Iria@Example.com'), 'iria@example.com');
   assert.equal(extractParty('somos 4'), 4);

@@ -73,7 +73,7 @@ Todas tienen un valor por defecto y están en `.env.example`. `scripts/up.sh` cr
 
 ## Producción
 
-Este repositorio no tiene un despliegue publicado: la demo se ejecuta en local. Lo que sigue es cómo se pondría en marcha en una máquina propia, y es lo que hace falta porque el modelo corre en esa misma máquina.
+La [demo pública](https://mesa.cristiancode.dev/demo/pasteleria) corre en un Mac mini, porque el modelo necesita una máquina propia. Lo que sigue es cómo se pondría en marcha este repositorio en una máquina así.
 
 ```bash
 ./scripts/up.sh

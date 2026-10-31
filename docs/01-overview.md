@@ -31,6 +31,7 @@ Si el modelo o la base de vectores se caen, la demo sigue funcionando: la búsqu
 
 ## Enlaces
 
+- **Demo:** [mesa.cristiancode.dev/demo/pasteleria](https://mesa.cristiancode.dev/demo/pasteleria)
 - **GitHub:** [Criscode2022/obrador-mel](https://github.com/Criscode2022/obrador-mel)
 - **Nombre en el código:** el negocio se llama `pasteleria` en las rutas y en `datasets/`. La marca es **Obrador Mel**.
 

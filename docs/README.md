@@ -1,6 +1,6 @@
 # Obrador Mel: documentación del caso de estudio
 
-Documentación de producto, arquitectura, motor y testing de Obrador Mel. Sigue el formato de los hubs de [cristiancode.dev](https://cristiancode.dev): los ficheros `NN-testing*.md` van a la página de testing y el resto, a la de documentación. Este índice no se publica.
+Documentación de producto, arquitectura, motor y testing de Obrador Mel. El portafolio la lee de esta carpeta al construirse y la publica en [cristiancode.dev/featured/obrador-mel/docs](https://cristiancode.dev/featured/obrador-mel/docs) y [cristiancode.dev/featured/obrador-mel/testing](https://cristiancode.dev/featured/obrador-mel/testing). Los ficheros `NN-testing*.md` van a la página de testing y el resto, a la de documentación. Este índice no se publica.
 
 | #   | Documento                                            |
 | --- | ---------------------------------------------------- |

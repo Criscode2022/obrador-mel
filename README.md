@@ -2,6 +2,8 @@
 
 A website for a fictional bakery in Santiago de Compostela, with a chat assistant that actually takes orders. It reads free text in Spanish or Galician, prices the order, checks lead times and pickup slots, and leaves everything ready for a person to confirm. Nothing is confirmed until someone at the bakery says so.
 
+**[Live demo](https://mesa.cristiancode.dev/demo/pasteleria)** · **[Case study](https://cristiancode.dev/featured/obrador-mel)** · **[Documentation](https://cristiancode.dev/featured/obrador-mel/docs)**
+
 ![The Obrador Mel website](docs/images/site-hero.png)
 
 The assistant is not a wrapper around a language model. It is a conversation engine written in plain JavaScript: most turns run in under 30 ms without any model, and prices, opening hours and availability are always computed from the data. A local model only writes the answers the data can't give directly, and every price, time and lead time it mentions is checked against the sources before anyone sees it.

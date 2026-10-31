@@ -48,6 +48,8 @@ Revisar el código con calma, escribir pruebas contra Postgres y leer conversaci
 | `+34 655 444 333` no se reconocía como teléfono                                           | Un `\b` tras el prefijo hacía que el prefijo nunca encajara                |
 | En el obrador, «a las 3» se leía como las 03:00                                           | Con costumbre de mañana, la lectura de la mañana ganaba aunque no abriera  |
 | La respuesta citaba tres fuentes y a veces salía de la cuarta                             | Las citas se cortaban en tres y el contexto llevaba cuatro                 |
+| «Quiero reservar una mesa» recibía una respuesta sobre mesas dulces de bodas              | Pedir una reserva iba al modelo igual que preguntar por ellas              |
+| En gallego, la hora propuesta llevaba un «a las» en castellano                            | La frase de la hora se montaba igual para los dos idiomas                  |
 | La política de seguridad bloqueaba parte de los estilos, y con ellos las tipografías      | El build de Angular añade un script en línea                               |
 
 La lección de la primera fila vale para todo el proyecto: una regla como «las tarjetas no se guardan» no se cumple tapando en un sitio, sino comprobando todos los sitios donde acaba el dato. El test que la vigila ahora vuelca cada tabla del expediente y busca el número.

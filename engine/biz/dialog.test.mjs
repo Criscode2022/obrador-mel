@@ -214,6 +214,13 @@ test('varias preguntas en un mensaje se contestan todas', async () => {
   assert.match(texts(out), /abrimos/);
 });
 
+test('precio y alérgenos en la misma pregunta: se contestan los dos y en ese orden', async () => {
+  const [out] = await talk(['¿cuánto cuesta el brownie y lleva frutos secos?']);
+  assert.equal(out.replies.length, 2);
+  assert.match(out.replies[0].text, /3,00/);
+  assert.match(out.replies[1].text, /frutos secos/);
+});
+
 test('notas: lo que se guarda va sin tarjeta ni DNI', async () => {
   const log = await talk(['dos palmeras para el sábado a las 11 a nombre de Iria, teléfono 655444333', 'mi dni es 12345678Z por si hace falta']);
   assert.equal(log[1].state.order.note, 'mi dni es [DNI] por si hace falta');

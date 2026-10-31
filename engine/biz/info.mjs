@@ -399,16 +399,14 @@ export function infoReply({ biz, catalog, lang, signals, now }) {
 export function infoReplies(ctx) {
   const { signals } = ctx;
   const out = [];
-  const first = infoReply(ctx);
-  if (first) out.push(first);
+  const add = (r) => {
+    if (r && !out.some((o) => o.text === r.text)) out.push(r);
+  };
+  // El precio primero: infoReply contesta de alérgenos en cuanto oye «lleva» y se lo saltaría.
+  if (signals.topic === 'price' && asksContains(signals.text) && signals.items.lines.length) add(byTopic('price', ctx));
+  add(infoReply(ctx));
   for (const t of (signals.topics ?? []).slice(0, 3)) {
-    if (t === signals.topic && first) continue;
-    const r = byTopic(t, ctx);
-    if (r && !out.some((o) => o.text === r.text)) out.push(r);
-  }
-  if (signals.topic === 'price' && asksContains(signals.text) && signals.items.lines.length && hasAllergenData(ctx.catalog)) {
-    const r = answerContains({ catalog: ctx.catalog, lang: ctx.lang, signals });
-    if (r && !out.some((o) => o.text === r.text)) out.push(r);
+    if (t !== signals.topic) add(byTopic(t, ctx));
   }
   return out;
 }

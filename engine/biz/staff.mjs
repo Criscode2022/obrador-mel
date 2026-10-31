@@ -208,7 +208,7 @@ export async function finishConfirmed({ kase, request, business, approvalId, lan
       approval_id: approvalId, event_id: calendar.event_id, start: iso(request.slot_start), end: iso(request.slot_end), business: business.slug,
     });
   }
-  await emit(kase, request, business, approvalId);
+  await emit(kase, { ...request, status: 'confirmed' }, business, approvalId);
   await pool.query(`UPDATE biz_requests SET status = 'confirmed', updated_at = now() WHERE id = $1`, [request.id]);
   const text = confirmedText(business, request, lang, note, now);
   const card = request.data?.card ? { ...request.data.card, status: 'confirmed' } : null;

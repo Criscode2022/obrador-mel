@@ -84,6 +84,7 @@ test('el cierre escribe un markdown con identidad, tokens, fuentes y aprobación
   for (const line of [`- id: ${sent.case_id}`, '- lang: es', '- route: local', '- tokens: in=0 out=0', '- negocio: Obrador Mel (pasteleria)', `- aprobación: ${approval}`, '## Citations', '## Ferramentas']) {
     assert.ok(md.includes(line), line);
   }
+  assert.match(md, /- solicitud: order · confirmed/);
   assert.match(md, /2 × Palmera de hojaldre: 4,40/);
   assert.match(md, /Son un asistente; unha persoa confirmou/);
   const [artifact] = await rows('SELECT kind, path, transcript FROM artifacts WHERE case_id = $1', sent.case_id);
@@ -128,6 +129,9 @@ test('proponer otra hora y aceptarla mueve el pedido y su tarjeta', async () => 
   assert.equal('proposed' in done.request.data, false);
   const conv = await conversation({ slug, session, caseId: sent.case_id });
   assert.match(conv.messages.at(-1).text, new RegExp(other.time));
+  const md = fs.readFileSync(path.join(OUT, `${sent.case_id}.md`), 'utf8');
+  assert.match(md, /- solicitud: order · confirmed/);
+  assert.ok(md.includes(`- recogida: 2026-10-17 ${other.time}`), md);
 });
 
 test('si la hora propuesta no le viene bien, la solicitud vuelve al local', async () => {

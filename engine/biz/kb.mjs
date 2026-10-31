@@ -7,6 +7,7 @@ import { readEnv } from '../config.mjs';
 import { embedModel, ollamaEmbed } from '../llm.mjs';
 import { rangesLabel } from './avail.mjs';
 import { getBusiness } from './store.mjs';
+import { normalize, singular } from './text.mjs';
 
 const QDRANT = () => (readEnv().QDRANT_URL || 'http://127.0.0.1:56333').replace(/\/$/, '');
 export const collectionOf = (slug) => `kb_${String(slug).replace(/-/g, '_')}`;
@@ -16,6 +17,31 @@ const ALLERGEN_ES = {
   lacteos: 'lácteos', frutos_secos: 'frutos secos', apio: 'apio', mostaza: 'mostaza', sesamo: 'sésamo', sulfitos: 'sulfitos',
   altramuces: 'altramuces', moluscos: 'moluscos',
 };
+
+const STOP = new Set(('de la el en y a los se del las un por con no una su para es al lo como mas pero sus le ya o este si '
+  + 'porque esta entre cuando muy sin sobre ser tiene tambien me hasta hay donde quien desde todo nos durante todos uno les ni '
+  + 'contra otros ese eso ante ellos e esto mi antes algunos unos yo otro otras otra tanto esa estos mucho quienes nada muchos '
+  + 'cual poco ella estar estas algunas algo nosotros hola buenas gracias favor quiero queria puedo podeis teneis tienen vuestro '
+  + 'vuestra que qué cuanto cuantos cuanta como donde cuando abris vale cuesta tenemos vuestros vuestras os vosotros ustedes '
+  + 'podria podrian saber dime decirme digame ola grazas quero teñen').split(' '));
+
+// Palabras que el cliente usa y el local no escribe: se añaden a la consulta para la búsqueda por palabras.
+const SYNONYMS = {
+  mascota: ['perro'], gato: ['perro', 'mascota'], animal: ['perro'], nino: ['trona', 'infantil'], bebe: ['trona'], pequeno: ['trona'],
+  pagar: ['pago', 'tarjeta', 'bizum'], efectivo: ['pago'], movil: ['bizum', 'pago'], contactless: ['pago'],
+  coche: ['aparcamiento'], aparcar: ['aparcamiento'], parking: ['aparcamiento'], estacionar: ['aparcamiento'], bus: ['autobus'],
+  enchufe: ['wifi'], ordenador: ['portatil', 'trabajar'], portatil: ['trabajar', 'wifi'], internet: ['wifi'],
+  cumple: ['cumpleanos', 'celebracion'], cumpleanos: ['celebracion'], celebrar: ['celebracion'], fiesta: ['celebracion', 'evento'],
+  regalo: ['tarjeta', 'regalo'], bono: ['bono'], empresa: ['catering', 'factura'], oficina: ['catering'],
+  silla: ['accesibilidad', 'trona'], minusvalido: ['accesibilidad'], discapacidad: ['accesibilidad'], rampa: ['accesibilidad'],
+  vegetariano: ['vegano'], intolerancia: ['alergeno'], alergia: ['alergeno'], alergico: ['alergeno'], celiaco: ['gluten'],
+  cancelar: ['cancelacion'], anular: ['cancelacion'], devolver: ['devolucion'], propina: ['propina'], trabajo: ['empleo'],
+  curriculum: ['empleo'], cv: ['empleo'], domicilio: ['envio'], envio: ['domicilio'], llevar: ['recoger'], encargo: ['encargos'],
+  tarde: ['horario'], temprano: ['horario'], festivo: ['horario'], domingo: ['horario'], sabado: ['horario'],
+};
+
+const contentTokens = (text) => normalize(text).replace(/[^a-z0-9 ]+/g, ' ').split(' ')
+  .filter((w) => w.length > 1 && !STOP.has(w)).map(singular);
 
 function pointId(slug, source, heading) {
   const hex = createHash('sha256').update(`${slug}:${source}:${heading}`).digest('hex');
@@ -149,4 +175,68 @@ export async function ensureIngested(slug) {
   })();
   ingested.set(slug, job);
   return job;
+}
+
+// ---------------------------------------------------------------------------- búsqueda
+
+const idfCache = new Map();
+function idfFor(slug, chunks) {
+  const key = `${slug}:${chunks.length}`;
+  if (idfCache.has(key)) return idfCache.get(key);
+  const df = new Map();
+  const docs = chunks.map((c) => new Set(contentTokens(`${c.title} ${c.heading} ${c.heading} ${c.text}`)));
+  for (const set of docs) for (const t of set) df.set(t, (df.get(t) ?? 0) + 1);
+  const n = chunks.length;
+  const idf = (t) => Math.log(1 + n / (1 + (df.get(t) ?? 0)));
+  const out = { idf, docs, max: Math.log(1 + n) };
+  idfCache.set(key, out);
+  return out;
+}
+
+export function lexical(slug, chunks, query) {
+  const base = [...new Set(contentTokens(query))];
+  const q = [...new Set([...base, ...base.flatMap((t) => (SYNONYMS[t] ?? []).flatMap(contentTokens))])];
+  const { idf, docs, max } = idfFor(slug, chunks);
+  const denom = base.reduce((s, t) => s + (docs.some((d) => d.has(t)) ? idf(t) : max), 0) || 1;
+  return chunks.map((c, i) => {
+    let hit = 0;
+    for (const t of q) if (docs[i].has(t)) hit += idf(t);
+    // Un token que aparece en el título de la sección pesa más.
+    const head = new Set(contentTokens(c.heading));
+    for (const t of q) if (head.has(t)) hit += idf(t) * 0.5;
+    return Math.min(1, hit / denom);
+  });
+}
+
+async function vectorHits(slug, query, limit = 8) {
+  await ensureIngested(slug);
+  const { vector } = await ollamaEmbed(`search_query: ${query}`);
+  const name = collectionOf(slug);
+  let res = await qdrant('POST', `/collections/${name}/points/query`, { query: vector, limit, with_payload: true });
+  if (res.ok) return ((await res.json()).result?.points ?? []);
+  res = await qdrant('POST', `/collections/${name}/points/search`, { vector, limit, with_payload: true });
+  if (!res.ok) throw new Error(`qdrant search ${res.status}`);
+  return ((await res.json()).result ?? []);
+}
+
+const COS_FLOOR = 0.42;
+// -> { hits: [{ ...chunk, lexical, cosine, score }], degraded, ms }
+export async function retrieve(slug, query, { k = 4 } = {}) {
+  const t0 = Date.now();
+  const chunks = chunksOf(slug);
+  const lex = lexical(slug, chunks, query);
+  const cos = new Map();
+  let degraded = false;
+  try {
+    for (const p of await vectorHits(slug, query)) cos.set(p.id, Number(p.score || 0));
+  } catch {
+    degraded = true;
+  }
+  const hits = chunks.map((c, i) => {
+    const cosine = cos.get(c.id) ?? 0;
+    const cosN = Math.max(0, Math.min(1, (cosine - COS_FLOOR) / 0.33));
+    const score = degraded ? lex[i] : 0.6 * lex[i] + 0.4 * cosN;
+    return { ...c, lexical: Number(lex[i].toFixed(3)), cosine: Number(cosine.toFixed(3)), score: Number(score.toFixed(3)) };
+  }).sort((a, b) => b.score - a.score).slice(0, k);
+  return { hits, degraded, ms: Date.now() - t0 };
 }

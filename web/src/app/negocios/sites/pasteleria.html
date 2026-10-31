@@ -37,6 +37,20 @@
           }
         </ul>
       </section>
+
+      <section id="plazos" class="plazos" aria-labelledby="t-p">
+        <div class="plazos-in">
+          <h2 id="t-p">Cuándo puedes recogerla</h2>
+          <ol>
+            <li><b>24 h</b><span>Tarta de Santiago</span></li>
+            <li><b>48 h</b><span>Tartas clásicas</span></li>
+            <li><b>5 días</b><span>Tarta personalizada</span></li>
+            <li><b>3 semanas</b><span>Bodas y eventos (con presupuesto)</span></li>
+          </ol>
+          <p>Si pides una fecha demasiado pronto, el asistente te lo dice y te enseña los días con hueco.</p>
+          <div class="chips">@for (s of p.assistant.suggestions; track s) { <button type="button" (click)="ask(s)">{{ s }}</button> }</div>
+        </div>
+      </section>
     </main>
   </biz-frame>
 } @else if (failed()) {

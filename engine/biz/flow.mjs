@@ -41,6 +41,8 @@ const ACTIONS = {
   menu: ['category'],
   handoff: [],
   qty: ['index', 'delta'],
+  change_accept: [],
+  change_reject: [],
 };
 
 export function cleanAction(raw) {
@@ -184,6 +186,11 @@ export async function chatTurn({
 
   let kase = caseId ? await loadCase(slug, session, caseId) : null;
   let primary = kase ? await primaryRequest(kase.id) : null;
+
+  if (act && (act.type === 'change_accept' || act.type === 'change_reject')) {
+    if (!kase || !primary) throw fail(404, 'conversación no encontrada');
+    return changeAnswer({ kase, primary, act, label, slug, business, now });
+  }
 
   let mode = 'continue';
   if (!kase || !primary || isTerminal(kase, primary)) mode = 'new';
@@ -376,6 +383,50 @@ export async function chatTurn({
     replies: stored,
     request: publicRequest(requestRow),
     trace: out.trace,
+  };
+}
+
+// ----------------------------------------------------------------- cambio propuesto por el local
+
+async function changeAnswer({ kase, primary, act, label, slug, business, now }) {
+  const id = kase.id;
+  if (primary.status !== 'change_proposed' || !primary.data?.proposed) {
+    throw fail(409, 'No hay ningún cambio pendiente de responder.');
+  }
+  const lang = primary.data.lang === 'gl' ? 'gl' : 'es';
+  const userMsg = await addMessage(id, 'user', label || (act.type === 'change_accept' ? 'Acepto la nueva hora' : 'No me va bien'), { action: act });
+  const p = primary.data.proposed;
+  let reply;
+  if (act.type === 'change_accept') {
+    const data = { ...primary.data, ymd: p.ymd, time: p.time, min: p.min, proposed: undefined, accepted_change: true };
+    delete data.proposed;
+    const start = p.start;
+    const end = p.end;
+    await pool.query(
+      `UPDATE biz_requests SET status = 'confirmed', data = $2::jsonb, slot_start = $3, slot_end = $4, updated_at = now() WHERE id = $1`,
+      [primary.id, JSON.stringify(data), start, end],
+    );
+    const { finishConfirmed } = await import('./staff.mjs');
+    await finishConfirmed({ kase, request: { ...primary, data, slot_start: start, slot_end: end }, business, approvalId: p.approval_id, lang, note: '', now });
+    reply = null;
+  } else {
+    await pool.query(
+      `UPDATE biz_requests SET status = 'pending', data = $2::jsonb, updated_at = now() WHERE id = $1`,
+      [primary.id, JSON.stringify({ ...primary.data, proposed: undefined, change_rejected: true })],
+    );
+    await addEvent(id, 'customer.change_rejected', { proposed: p });
+    const text = lang === 'gl'
+      ? 'Entendido: avisei ao local de que esa hora non che vai ben. Unha persoa responderache aquí.'
+      : 'Entendido: he avisado al local de que esa hora no te viene bien. Una persona te responderá aquí.';
+    const m = await addMessage(id, 'assistant', text, null);
+    reply = { id: m.id, role: 'assistant', text, meta: null, at: iso(m.at) };
+  }
+  const row = (await pool.query('SELECT * FROM biz_requests WHERE id = $1', [primary.id])).rows[0];
+  const messages = (await messagesOf(id)).filter((m) => m.at > iso(userMsg.at));
+  const fresh = (await pool.query('SELECT state FROM cases WHERE id = $1', [id])).rows[0];
+  return {
+    case_id: id, mode: 'change', state: fresh.state, user: { id: userMsg.id, at: iso(userMsg.at) },
+    replies: reply ? [reply] : messages, request: publicRequest(row), trace: [], slug,
   };
 }
 

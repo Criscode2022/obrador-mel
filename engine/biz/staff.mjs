@@ -5,8 +5,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createCalendarEvent } from '../calendar.mjs';
 import { nid, outputDir, pool } from '../db.mjs';
+import {
+  isoAt, pickupAvailability, staffAvailability, tableAvailability, todayYmd,
+} from './avail.mjs';
 import { dayLong, dayRel, money } from './format.mjs';
-import { HttpError, checkSession, loadCase, publicRequest } from './flow.mjs';
+import { HttpError, checkSession, loadCase, ownBlocks, publicRequest } from './flow.mjs';
 import { addEvent, addMessage, setState } from './persist.mjs';
 import { getBusiness } from './store.mjs';
 
@@ -73,6 +76,22 @@ export async function staffList({ slug, session }) {
       done: requests.length - open.length,
     },
   };
+}
+
+// Huecos libres sin sesión: solo la ocupación de fondo. Sirven a la web y a las pruebas.
+export function slotsPreview({ slug, ymd, party = 2, services = [], resource = null, now = new Date() }) {
+  const found = getBusiness(slug);
+  if (!found) throw fail(404, 'negocio desconocido');
+  const { business, catalog } = found;
+  const cfg = business.booking;
+  if (cfg?.mode === 'tables') return tableAvailability(business, { ymd, party: Number(party) || 2, now });
+  if (cfg?.mode === 'staff') {
+    const ids = services.filter((s) => catalog.byId.has(s));
+    const duration = ids.reduce((n, id) => n + (catalog.byId.get(id).duration ?? 30), 0) || 30;
+    return staffAvailability(business, { ymd, duration, serviceIds: ids, resourceId: resource || null, now });
+  }
+  if (business.order) return pickupAvailability(business, { ymd, now });
+  throw fail(400, 'este negocio no tiene reservas ni pedidos');
 }
 
 // ------------------------------------------------------------------------------- textos
@@ -202,13 +221,30 @@ async function approvalRow(kase, request, decision, note) {
   return id;
 }
 
+// ¿Sigue libre ese hueco para esta solicitud (ignorando ella misma)?
+async function slotFree({ business, catalog, request, ymd, min, session, now = new Date() }) {
+  const own = await ownBlocks(business.slug, session, request.id);
+  const d = request.data;
+  let av;
+  if (request.kind === 'order') {
+    av = pickupAvailability(business, { ymd, now, leadMinutes: Math.max(business.order.prep_minutes ?? 10, ...(d.lines ?? []).map((l) => (l.lead_hours ?? 0) * 60)), own });
+  } else if (business.booking?.mode === 'tables') {
+    av = tableAvailability(business, { ymd, party: d.party ?? 2, now, own });
+  } else {
+    const ids = (d.services ?? []).map((s) => s.id);
+    const duration = ids.reduce((n, id) => n + (catalog.byId.get(id)?.duration ?? 30), 0) || 30;
+    av = staffAvailability(business, { ymd, duration, serviceIds: ids, resourceId: d.resource?.id ?? null, now, own });
+  }
+  return av.slots.find((s) => s.min === min) ?? null;
+}
+
 export async function staffAct({
-  slug, session, requestId, action, message, now = new Date(),
+  slug, session, requestId, action, message, ymd, time, now = new Date(),
 }) {
   const found = getBusiness(slug);
   if (!found) throw fail(404, 'negocio desconocido');
   checkSession(session);
-  const { business } = found;
+  const { business, catalog } = found;
   const { rows } = await pool.query('SELECT * FROM biz_requests WHERE id = $1 AND business = $2 AND session_id = $3', [requestId, slug, session]);
   const request = rows[0];
   if (!request) throw fail(404, 'solicitud no encontrada');
@@ -235,6 +271,32 @@ export async function staffAct({
     const card = request.data?.card ? { ...request.data.card, status: 'denied' } : null;
     await addMessage(kase.id, 'staff', text, card ? { cards: [card] } : null);
     return { ok: true, status: 'denied', approval_id: approvalId, message: text };
+  }
+
+  if (action === 'change') {
+    if (!transactional || request.status !== 'pending') throw fail(409, 'Solo se puede proponer otra hora en una solicitud pendiente.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ymd)) || !/^\d{2}:\d{2}$/.test(String(time))) throw fail(400, 'indica día y hora');
+    const min = Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+    const slot = await slotFree({ business, catalog, request, ymd, min, session, now });
+    if (!slot) throw fail(409, 'Ese hueco no está libre. Elige uno de los disponibles.');
+    const approvalId = await approvalRow(kase, request, 'propose_change', note);
+    const duration = request.kind === 'order' ? 10 : (request.data.duration ?? 60);
+    const proposed = { ymd, time, min, start: isoAt(ymd, min), end: isoAt(ymd, min + duration), approval_id: approvalId };
+    await pool.query(
+      `UPDATE biz_requests SET status = 'change_proposed', data = $2::jsonb, updated_at = now() WHERE id = $1`,
+      [request.id, JSON.stringify({ ...request.data, proposed })],
+    );
+    const when = `${dayLong(ymd, lang)} a las ${time}`;
+    const text = request.kind === 'order'
+      ? L(lang, `El local no llega a la hora pedida. Propone dejártelo listo ${when}. ¿Te viene bien?${note ? ` ${note}` : ''}`, `O local non chega á hora pedida. Propón deixartelo listo ${when}. ¿Vénche ben?${note ? ` ${note}` : ''}`)
+      : L(lang, `El local te propone otra hora: ${when}. ¿Te viene bien?${note ? ` ${note}` : ''}`, `O local próponche outra hora: ${when}. ¿Vénche ben?${note ? ` ${note}` : ''}`);
+    await addMessage(kase.id, 'staff', text, {
+      chips: [
+        { label: L(lang, 'Aceptar la nueva hora', 'Aceptar a nova hora'), action: { type: 'change_accept' } },
+        { label: L(lang, 'No me viene bien', 'Non me vén ben'), action: { type: 'change_reject' } },
+      ],
+    });
+    return { ok: true, status: 'change_proposed', approval_id: approvalId, message: text };
   }
 
   throw fail(400, 'acción desconocida');

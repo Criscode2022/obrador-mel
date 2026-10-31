@@ -51,6 +51,11 @@
           <div class="chips">@for (s of p.assistant.suggestions; track s) { <button type="button" (click)="ask(s)">{{ s }}</button> }</div>
         </div>
       </section>
+
+      <section id="tienda" class="shop" aria-labelledby="t-s">
+        <header><h2 id="t-s">Del día en el mostrador</h2><p>Para recoger en el momento, sin encargo previo.</p></header>
+        <biz-menu [profile]="p" mode="order" [showAllergens]="true" [categories]="['individuales','panaderia','regalos']" label="Categorías del mostrador" />
+      </section>
     </main>
   </biz-frame>
 } @else if (failed()) {

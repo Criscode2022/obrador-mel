@@ -58,6 +58,7 @@ h1 { font-size: clamp(44px, 6.6vw, 92px); line-height: 1.02; }
 .chips button { padding: 10px 16px; border: 1.5px solid rgba(255, 255, 255, 0.35); border-radius: 99px; background: transparent; color: var(--bz-bg); font: 500 15px var(--bz-font); cursor: pointer; text-align: left; }
 .chips button:hover { background: var(--bz-bg); color: var(--bz-ink); }
 
+.shop { max-width: 940px; margin: 0 auto; padding: clamp(56px, 8vw, 110px) clamp(18px, 4vw, 40px) 20px; scroll-margin-top: 120px; }
 @media (max-width: 960px) {
   .hero, .visit { grid-template-columns: 1fr; }
   .art { order: -1; width: min(80%, 380px); }

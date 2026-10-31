@@ -4,11 +4,12 @@ import { BizArt } from '../art';
 import { euro } from '../biz-format';
 import { CatalogItem } from '../biz-types';
 import { BizFrame } from '../frame';
+import { BizMenu } from '../menu';
 import { SiteBase } from '../site-base';
 
 @Component({
   selector: 'site-pasteleria',
-  imports: [BizFrame, BizArt, Icon],
+  imports: [BizFrame, BizMenu, BizArt, Icon],
   templateUrl: './pasteleria.html',
   styleUrl: './pasteleria.scss',
 })

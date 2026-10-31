@@ -7,6 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "start": "node server.mjs",
     "schema": "node apply-schema.mjs",
     "test": "node --test \"*.test.mjs\" \"biz/*.test.mjs\""
   },

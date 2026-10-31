@@ -1,0 +1,52 @@
+{
+  "currency": "EUR",
+  "categories": [
+    { "id": "tartas", "name": "Tartas por encargo", "aliases": ["tarta", "tartas", "encargo", "encargos", "pastel", "pasteles"], "note": "Plazo mínimo de 48 horas. Elige las raciones al encargar." },
+    { "id": "individuales", "name": "Pastelería individual", "aliases": ["individual", "individuales", "pastelitos", "pastelillos", "bollos", "dulce", "dulces"], "note": "Del día, para recoger en el momento." },
+    { "id": "panaderia", "name": "Panadería", "aliases": ["pan", "panaderia", "hogaza", "barra"], "note": "Masa madre y fermentación lenta." },
+    { "id": "regalos", "name": "Para regalar", "aliases": ["regalo", "regalos", "caja", "cajas", "macarons", "galletas"], "note": "Cajas y bolsas listas para llevar." }
+  ],
+  "options": {
+    "raciones": {
+      "name": "Raciones",
+      "required": true,
+      "question": { "es": "¿Para cuántas raciones?", "gl": "¿Para cantas racións?" },
+      "choices": [
+        { "id": "8", "name": "8 raciones", "aliases": ["8 raciones", "ocho raciones", "8 porciones", "8 personas", "para 8", "ocho personas"], "delta": 0 },
+        { "id": "12", "name": "12 raciones", "aliases": ["12 raciones", "doce raciones", "12 porciones", "12 personas", "para 12", "doce personas"], "delta": 8 },
+        { "id": "20", "name": "20 raciones", "aliases": ["20 raciones", "veinte raciones", "20 porciones", "20 personas", "para 20", "veinte personas"], "delta": 18 }
+      ]
+    }
+  },
+  "ambiguous": {
+    "tarta": {
+      "aliases": ["tarta", "tartas", "pastel", "pastel grande"],
+      "name": "tarta",
+      "candidates": ["tarta-queso", "tarta-santiago", "tarta-chocolate", "tarta-zanahoria", "tarta-limon", "tarta-personalizada"]
+    }
+  },
+  "items": [
+    { "id": "tarta-queso", "category": "tartas", "name": "Tarta de queso", "aliases": ["tarta de queso", "cheesecake", "tarta queso", "tarta de queso al horno"], "price": 22, "description": "Cremosa, al horno, con base de galleta y mermelada de arándanos. Precio de 8 raciones.", "tags": ["vegetariano"], "contains": ["gluten", "lacteos", "huevos"], "options": ["raciones"], "lead_hours": 48, "popular": true },
+    { "id": "tarta-santiago", "category": "tartas", "name": "Tarta de Santiago", "aliases": ["tarta de santiago", "santiago", "tarta santiago", "tarta de almendra"], "price": 18, "description": "Almendra, huevo y limón, sin harina. Con la cruz de Santiago en azúcar glas. Precio de 8 raciones.", "tags": ["vegetariano", "sin_gluten"], "contains": ["frutos_secos", "huevos"], "options": ["raciones"], "lead_hours": 24, "popular": true },
+    { "id": "tarta-chocolate", "category": "tartas", "name": "Tarta Sacher", "aliases": ["tarta sacher", "sacher", "tarta de chocolate", "chocolate", "tarta de choco"], "price": 26, "description": "Bizcocho de chocolate, mermelada de albaricoque y cobertura brillante. Precio de 8 raciones.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos", "soja"], "options": ["raciones"], "lead_hours": 48 },
+    { "id": "tarta-zanahoria", "category": "tartas", "name": "Tarta de zanahoria", "aliases": ["tarta de zanahoria", "carrot cake", "zanahoria"], "price": 24, "description": "Bizcocho especiado con nueces y frosting de queso crema. Precio de 8 raciones.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos", "frutos_secos"], "options": ["raciones"], "lead_hours": 48 },
+    { "id": "tarta-limon", "category": "tartas", "name": "Tarta de limón (lemon pie)", "aliases": ["tarta de limon", "lemon pie", "pie de limon", "tarta limon"], "price": 22, "description": "Base de galleta, crema de limón y merengue flameado. Precio de 8 raciones.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos"], "options": ["raciones"], "lead_hours": 48 },
+    { "id": "tarta-personalizada", "category": "tartas", "name": "Tarta personalizada", "aliases": ["tarta personalizada", "tarta de cumpleanos", "tarta de cumple", "tarta decorada", "tarta tematica", "tarta a medida", "tarta con figuras", "tarta de diseno"], "price": 38, "price_from": true, "description": "Diseño a medida: temática, colores y figuras de fondant. Precio desde, para 8 raciones; el diseño final lo confirma una persona del obrador.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos", "soja"], "options": ["raciones"], "lead_hours": 120, "note": "Plazo mínimo de 5 días." },
+    { "id": "bizcocho-yogur", "category": "tartas", "name": "Bizcocho de yogur", "aliases": ["bizcocho de yogur", "bizcocho", "bizcocho de yogurt", "bizcocho de limon"], "price": 9, "description": "Esponjoso, con ralladura de limón. Entero, unas 10 raciones.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos"], "options": [], "lead_hours": 2 },
+
+    { "id": "eclair", "category": "individuales", "name": "Éclair de chocolate", "aliases": ["eclair", "eclair de chocolate", "eclairs", "petisu"], "price": 3.2, "description": "Choux relleno de crema de chocolate negro.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos"], "options": [] },
+    { "id": "milhojas", "category": "individuales", "name": "Milhojas de crema", "aliases": ["milhojas", "milhojas de crema", "milhoja", "mil hojas"], "price": 3.8, "description": "Hojaldre caramelizado y crema pastelera de vainilla.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos"], "options": [] },
+    { "id": "palmera", "category": "individuales", "name": "Palmera de hojaldre", "aliases": ["palmera", "palmeras", "palmera de hojaldre"], "price": 2.2, "description": "Crujiente, con mantequilla y azúcar caramelizado.", "tags": ["vegetariano"], "contains": ["gluten", "lacteos"], "options": [] },
+    { "id": "tartaleta", "category": "individuales", "name": "Tartaleta de frutas", "aliases": ["tartaleta", "tartaleta de frutas", "tartaletas", "tartaleta de fruta"], "price": 3.6, "description": "Base de sablé, crema pastelera y fruta de temporada.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos"], "options": [] },
+    { "id": "pastel-nata", "category": "individuales", "name": "Pastel de nata", "aliases": ["pastel de nata", "pasteis de nata", "pastel de belem", "pastelito de nata"], "price": 2.3, "description": "Hojaldre fino y crema horneada, con canela.", "tags": ["vegetariano"], "contains": ["gluten", "huevos", "lacteos"], "options": [] },
+    { "id": "brownie", "category": "individuales", "name": "Brownie sin harina", "aliases": ["brownie", "brownies"], "price": 3, "description": "Denso, de chocolate negro y nueces, sin harina de trigo.", "tags": ["vegetariano", "sin_gluten"], "contains": ["huevos", "lacteos", "frutos_secos"], "options": [] },
+
+    { "id": "pan-masa-madre", "category": "panaderia", "name": "Barra de masa madre", "aliases": ["barra de masa madre", "barra", "pan de masa madre", "pan", "barra de pan"], "price": 3.2, "description": "Fermentación de 24 horas, corteza fina.", "tags": ["vegano"], "contains": ["gluten"], "options": [] },
+    { "id": "hogaza", "category": "panaderia", "name": "Hogaza de centeno", "aliases": ["hogaza", "hogaza de centeno", "pan de centeno", "pan de cereales"], "price": 5.5, "description": "Con semillas de lino y calabaza. 750 g.", "tags": ["vegano"], "contains": ["gluten"], "options": [] },
+    { "id": "pan-leche", "category": "panaderia", "name": "Bollos de leche (4)", "aliases": ["bollos de leche", "pan de leche", "bollos", "bollo de leche"], "price": 3.8, "description": "Tiernos y ligeramente dulces, bolsa de cuatro.", "tags": ["vegetariano"], "contains": ["gluten", "lacteos", "huevos"], "options": [] },
+    { "id": "empanada-entera", "category": "panaderia", "name": "Empanada entera de bonito", "aliases": ["empanada entera", "empanada", "empanada de bonito", "empanada gallega"], "price": 18, "description": "Masa casera, sofrito de cebolla y pimiento. Bandeja de unas 10 raciones.", "tags": [], "contains": ["gluten", "pescado", "huevos"], "options": [], "lead_hours": 24 },
+
+    { "id": "macarons", "category": "regalos", "name": "Caja de 6 macarons", "aliases": ["macarons", "caja de macarons", "caja de 6 macarons", "macaron", "macarrones"], "price": 14.5, "description": "Seis sabores de temporada en caja de regalo.", "tags": ["vegetariano", "sin_gluten"], "contains": ["frutos_secos", "huevos", "lacteos"], "options": [], "lead_hours": 2, "popular": true },
+    { "id": "galletas", "category": "regalos", "name": "Bolsa de galletas de mantequilla", "aliases": ["galletas", "bolsa de galletas", "galletas de mantequilla", "galleta"], "price": 6.5, "description": "Unas 12 unidades, con mantequilla de Galicia.", "tags": ["vegetariano"], "contains": ["gluten", "lacteos", "huevos"], "options": [] }
+  ]
+}

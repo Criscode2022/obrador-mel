@@ -40,10 +40,10 @@ obrador-mel/
 | `text.mjs`     | 61     | Normalizar, números escritos, parecido entre palabras, generador con semilla  |
 | `dates.mjs`    | 190    | Día y hora de un mensaje, con el horario del negocio                          |
 | `orders.mjs`   | 410    | Del texto a líneas de pedido; carrito, precio y alérgenos                     |
-| `nlu.mjs`      | 334    | Idioma, intención, temas, dietas, datos de contacto, rechazos                 |
+| `nlu.mjs`      | 337    | Idioma, intención, temas, dietas, datos de contacto, rechazos                 |
 | `avail.mjs`    | 326    | Horario, ocupación de fondo, huecos de recogida, mesas y citas, agenda        |
 | `format.mjs`   | 58     | Importes, fechas y horario en cada idioma                                     |
-| `info.mjs`     | 413    | Respuestas calculadas: horario, precios, carta, alérgenos                     |
+| `info.mjs`     | 447    | Respuestas calculadas: horario, precios, raciones, carta, alérgenos           |
 | `ctx.mjs`      | 81     | El contexto de un turno y las señales vacías                                  |
 | `ordering.mjs` | 466    | El flujo de un pedido                                                         |
 | `booking.mjs`  | 491    | El flujo de una reserva de mesa o una cita                                    |

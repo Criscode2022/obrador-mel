@@ -143,4 +143,4 @@ Se citan todas las que recibió el modelo, porque cualquiera de ellas puede ser 
 
 ## Cuándo no se llega aquí
 
-Horario, precios, carta y alérgenos se contestan en `info.mjs` sin modelo, porque tienen que ser exactos. Una pregunta de horario solo llega aquí si habla de festivos, que necesitan más explicación que la tabla. Y si el mensaje trae otra pregunta que los datos no cubren («¿dónde estáis y se puede ir con perro?»), se contesta la parte calculada y la búsqueda completa el resto.
+Horario, precios, raciones, carta y alérgenos se contestan en `info.mjs` sin modelo, porque tienen que ser exactos. Una pregunta de horario solo llega aquí si habla de festivos, que necesitan más explicación que la tabla. Y si el mensaje trae otra pregunta que los datos no cubren («¿dónde estáis y se puede ir con perro?»), se contesta la parte calculada y la búsqueda completa el resto.

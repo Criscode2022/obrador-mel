@@ -134,11 +134,10 @@ test('una respuesta del conocimiento lleva sus fuentes', async () => {
   assert.equal(out.replies[0].cites[0].heading, 'Congelar');
   assert.equal(out.request, null);
   // El plazo de una tarta también es del conocimiento: «hay que encargar» no pregunta qué hay en la carta,
-  // y «qué plazo tiene» o «cuántas raciones tiene» no preguntan qué lleva.
+  // y «qué plazo tiene» no pregunta qué lleva.
   const plazos = await talk([
     '¿Con cuánta antelación hay que encargar una tarta personalizada?',
     '¿Qué plazo tiene una tarta personalizada?',
-    '¿Cuántas raciones tiene la tarta de queso?',
   ], { kbAnswer });
   for (const p of plazos) {
     assert.equal(texts(p), 'Sí, se puede.');
@@ -154,13 +153,15 @@ test('se citan todas las fuentes que recibió el modelo', async () => {
   assert.deepEqual(out.replies[0].cites.map((c) => c.heading), ['Uno', 'Dos', 'Tres', 'Cuatro']);
 });
 
-test('respuestas calculadas: alérgenos y horario sin pasar por el modelo', async () => {
-  const [gluten, hours] = await talk(['¿qué tenéis sin gluten?', '¿a qué hora abrís hoy?'], {
+test('respuestas calculadas: alérgenos, horario y raciones sin pasar por el modelo', async () => {
+  const [gluten, hours, raciones, tamanos] = await talk(['¿qué tenéis sin gluten?', '¿a qué hora abrís hoy?', '¿Cuántas raciones tiene la tarta de queso?', '¿Qué tamaños tiene la tarta personalizada?'], {
     kbAnswer: async () => { throw new Error('no debía llamarse'); },
   });
   assert.match(texts(gluten), /3 productos sin gluten/);
   assert.deepEqual(gluten.replies[0].cards[0].rows.map((r) => r.id).sort(), ['brownie', 'macarons', 'tarta-santiago']);
   assert.match(texts(hours), /09:00/);
+  assert.match(texts(raciones), /^Tarta de queso: 8 raciones, 22,00\s€; 12 raciones, 30,00\s€; 20 raciones, 40,00\s€\.$/);
+  assert.match(texts(tamanos), /^Tarta personalizada: 8 raciones, desde 38,00\s€; 12 raciones, desde 46,00\s€; 20 raciones, desde 56,00\s€\.$/);
 });
 
 test('alérgenos de un producto concreto', async () => {

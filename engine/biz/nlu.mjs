@@ -184,7 +184,7 @@ export function detectDiet(text) {
 }
 
 // «¿Qué plazo tiene…?», «¿cuántas raciones tiene…?»: ese «tiene» pregunta por otra cosa, no por lo que lleva.
-const OTHER_PROPERTY = /\b(?:plazo|plazos|precio|precios|coste|tamano|medida|medidas|peso|raciones|porciones|duracion|antelacion|tiempo|horario)(?: de \w+)? (?:tiene|tienen)\b/g;
+const OTHER_PROPERTY = /\b(?:plazo|plazos|precio|precios|coste|tamano|tamanos|medida|medidas|peso|raciones|porciones|duracion|antelacion|tiempo|horario)(?: de \w+)? (?:tiene|tienen)\b/g;
 
 // «lleva frutos secos», «contiene gluten», «tiene huevo»: pregunta por un producto concreto.
 export function asksContains(text) {

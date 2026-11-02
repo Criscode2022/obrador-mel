@@ -344,6 +344,37 @@ export function answerContains({ catalog, lang, signals }) {
   return { text, cites: source, evidence };
 }
 
+// «¿Cuántas raciones tiene la tarta de queso?», «¿para cuántas personas es?»: las opciones de un producto,
+// cada una con su precio. Salen del catálogo, como el resto de precios.
+const OPTION_WORDS = {
+  raciones: ['racion', 'raciones', 'porcion', 'porciones', 'persona', 'personas', 'tamano', 'tamanos', 'racions', 'porcions', 'persoas'],
+};
+
+function askedOptionGroup(item, catalog, norm) {
+  for (const id of item.options ?? []) {
+    const group = catalog.options?.[id];
+    if (!group?.choices?.length) continue;
+    const words = [...new Set([id, ...normalize(group.name ?? '').split(' '), ...(OPTION_WORDS[id] ?? [])])].filter((w) => w.length > 2);
+    if (new RegExp(`\\b(?:cuantas|cuantos|cantas|cantos|cuales|cales|que) (?:\\w+ )?(?:${words.join('|')})\\b`).test(norm)) return group;
+  }
+  return null;
+}
+
+export function answerOptions({ catalog, lang, signals }) {
+  const ids = [...new Set(signals.items.lines.map((l) => l.item_id))];
+  if (ids.length !== 1) return null;
+  const item = catalog.byId.get(ids[0]);
+  const group = item?.price_cents != null ? askedOptionGroup(item, catalog, signals.norm) : null;
+  if (!group) return null;
+  const from = item.price_from ? 'desde ' : '';
+  const list = group.choices.map((c) => `${c.name}, ${from}${money(item.price_cents + Math.round((c.delta ?? 0) * 100), lang)}`);
+  return {
+    text: `${item.name}: ${list.join('; ')}.`,
+    cites: [cite(L(lang, 'Carta y catálogo', 'Carta e catálogo'), 'catalog.json')],
+    evidence: [{ step: 'catalog', ok: true, detail: `${item.name}: ${group.choices.length} opciones de ${normalize(group.name ?? '')}` }],
+  };
+}
+
 function byTopic(topic, { biz, catalog, lang, signals, now }) {
   const hasHours = Object.values(biz.hours ?? {}).some((r) => r?.length);
   const hasCatalog = catalog.items.length > 0;
@@ -381,6 +412,8 @@ export function infoReply({ biz, catalog, lang, signals, now }) {
     const r = answerContains({ catalog, lang, signals });
     if (r) return r;
   }
+  const options = answerOptions({ catalog, lang, signals });
+  if (options) return options;
   if (topic) {
     const r = byTopic(topic, { biz, catalog, lang, signals, now });
     if (r || topic !== 'menu') return r;

@@ -39,6 +39,7 @@ El precio, los alérgenos, el horario y los plazos no están escritos en el HTML
 | ----------------------------------------- | -------------------------------------------------------------------- |
 | «¿A qué hora abrís?», «¿el lunes abrís?»  | Calculado con el horario y los cierres, teniendo en cuenta qué día es |
 | «¿Cuánto cuesta el brownie?»              | Del catálogo                                                         |
+| «¿Cuántas raciones tiene la tarta de queso?» | Del catálogo: cada tamaño con su precio                          |
 | «¿Qué tenéis sin gluten?»                 | Filtrado del catálogo por alérgenos, con la lista de productos        |
 | «¿La tarta de zanahoria lleva frutos secos?» | Del catálogo, con el aviso de que una persona lo confirma           |
 | «¿Dónde estáis?», «¿qué teléfono tenéis?» | De la ficha del negocio                                              |

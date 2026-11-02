@@ -87,7 +87,7 @@ Lo más importante de esta tabla es la columna de la derecha. `turn()`, la funci
 | Postgres  | No hay servicio: `GET /health` devuelve 503 y el chat, un error                          |
 | El motor  | La web sigue en pie; el chat dice que no hay conexión y ofrece reintentar                 |
 
-Los encargos y las preguntas de horario, precio y alérgenos no dependen ni de Ollama ni de Qdrant. La integración continua lo aprovecha: corre 31 de las 32 conversaciones sin modelo.
+Los encargos y las preguntas de horario, precio, raciones y alérgenos no dependen ni de Ollama ni de Qdrant. La integración continua lo aprovecha: corre 31 de las 32 conversaciones sin modelo.
 
 ## La web
 

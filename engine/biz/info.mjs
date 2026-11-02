@@ -388,7 +388,8 @@ export function infoReply({ biz, catalog, lang, signals, now }) {
   if (signals.items.lines.length && !signals.process_question && /(?:^|\s)(?:tenei?s|teneis|tienen|haceis|hacen)\b|^hay\b|\bque hay\b/.test(signals.norm)) {
     return answerPrice({ biz, catalog, lang, signals });
   }
-  if (categoryOf(signals.text, catalog) && /\b(?:tenei?s|teneis|hay|tienen|haceis|hacen|ofreceis)\b/.test(signals.norm)) {
+  // «¿Qué tartas hay?» enseña la carta; «¿con cuánta antelación hay que encargar…?» no pregunta qué hay.
+  if (categoryOf(signals.text, catalog) && /\b(?:tenei?s|teneis|hay(?! que)|tienen|haceis|hacen|ofreceis)\b/.test(signals.norm)) {
     return answerMenu({ biz, catalog, lang, signals });
   }
   return null;

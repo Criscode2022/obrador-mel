@@ -133,6 +133,18 @@ test('una respuesta del conocimiento lleva sus fuentes', async () => {
   assert.equal(out.replies[0].text, 'Sí, se puede.');
   assert.equal(out.replies[0].cites[0].heading, 'Congelar');
   assert.equal(out.request, null);
+  // El plazo de una tarta también es del conocimiento: «hay que encargar» no pregunta qué hay en la carta,
+  // y «qué plazo tiene» o «cuántas raciones tiene» no preguntan qué lleva.
+  const plazos = await talk([
+    '¿Con cuánta antelación hay que encargar una tarta personalizada?',
+    '¿Qué plazo tiene una tarta personalizada?',
+    '¿Cuántas raciones tiene la tarta de queso?',
+  ], { kbAnswer });
+  for (const p of plazos) {
+    assert.equal(texts(p), 'Sí, se puede.');
+    assert.equal(p.replies[0].cites[0].heading, 'Congelar');
+    assert.ok(!p.replies.some((r) => r.cards?.length), 'sin la carta de tartas');
+  }
 });
 
 test('se citan todas las fuentes que recibió el modelo', async () => {
@@ -156,6 +168,10 @@ test('alérgenos de un producto concreto', async () => {
   assert.match(texts(a), /No consta gluten/);
   assert.match(texts(b), /contiene frutos secos/);
   assert.match(texts(b), /una persona del local lo confirma/);
+  // «¿Qué precio tiene…?» pregunta el precio y nada más; «¿qué tiene…?» sí pregunta qué lleva.
+  const [precio, lleva] = await talk(['¿Qué precio tiene el brownie?', '¿Qué tiene la tarta de queso?']);
+  assert.match(texts(precio), /^Brownie sin harina: 3,00\s€\.$/);
+  assert.match(texts(lleva), /Tarta de queso contiene gluten, lácteos y huevo/);
 });
 
 test('rechazos: tarjeta, inyección y abuso', async () => {

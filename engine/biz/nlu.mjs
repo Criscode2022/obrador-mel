@@ -183,9 +183,13 @@ export function detectDiet(text) {
   return { avoid: [...avoid], tags, free: Boolean(free) && (avoid.size > 0 || /celiac/.test(t)) };
 }
 
+// «¿Qué plazo tiene…?», «¿cuántas raciones tiene…?»: ese «tiene» pregunta por otra cosa, no por lo que lleva.
+const OTHER_PROPERTY = /\b(?:plazo|plazos|precio|precios|coste|tamano|medida|medidas|peso|raciones|porciones|duracion|antelacion|tiempo|horario)(?: de \w+)? (?:tiene|tienen)\b/g;
+
 // «lleva frutos secos», «contiene gluten», «tiene huevo»: pregunta por un producto concreto.
 export function asksContains(text) {
-  return /\b(?:lleva|llevan|contiene|contienen|tiene|tienen|incluye|incluyen|esta hecho|hecho con|lleva algo)\b/.test(normalize(text));
+  const t = normalize(text).replace(OTHER_PROPERTY, ' ');
+  return /\b(?:lleva|llevan|contiene|contienen|tiene|tienen|incluye|incluyen|esta hecho|hecho con|lleva algo)\b/.test(t);
 }
 
 // Formas distintas de pedir lo mismo. Todo sobre texto sin tildes ni mayúsculas.

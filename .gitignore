@@ -15,3 +15,42 @@ output/
 # Sistema y ruido
 .DS_Store
 *.log
+
+# From angular-ai-template: secrets, editor files, and the caches its tools write.
+/dist
+/tmp
+/out-tsc
+/bazel-out
+/node_modules
+npm-debug.log
+yarn-error.log
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.history/*
+/.angular/cache
+.nx/
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/
+Thumbs.db
+.env.*
+.mcp.json.local
+.claude/settings.local.json
+._*
+# Keep the example env file tracked.
+!.env.example
